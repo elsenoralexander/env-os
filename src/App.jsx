@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { db } from './firebase';
+import { collection, doc, getDocs, setDoc, updateDoc, onSnapshot, writeBatch } from 'firebase/firestore';
 import initialData from './data/initial_data.json';
 import Dashboard from './components/Dashboard';
 import { AnimatePresence } from 'framer-motion';
@@ -13,73 +15,116 @@ function App() {
     const [shipments, setShipments] = useState([]);
     const [services, setServices] = useState(DEFAULT_SERVICES);
     const [loading, setLoading] = useState(true);
-    const [currentView, setCurrentView] = useState('main'); // 'main', 'history', 'analytics'
+    const [currentView, setCurrentView] = useState('main');
 
-    useEffect(() => {
-        const savedShipments = localStorage.getItem('hospital_shipments');
-        const savedServices = localStorage.getItem('hospital_services');
+    // Initialize Firestore with data if empty
+    const initializeFirestore = async () => {
+        const shipmentsRef = collection(db, 'shipments');
+        const snapshot = await getDocs(shipmentsRef);
 
-        if (savedShipments) {
-            setShipments(JSON.parse(savedShipments));
-        } else {
-            // Transform initial data to extract SN if possible and add priority
+        if (snapshot.empty) {
+            console.log('📦 Initializing Firestore with initial data...');
+            const batch = writeBatch(db);
+
             const transformedData = initialData.map(item => {
                 let sn = item.sn || '';
-                let model = item.model;
-
-                // Try to extract SN from model string if not present
                 if (!sn) {
-                    const snMatch = model.match(/(?:sn|SN|S\/N|S\.N\.|SN:)\s*([A-Z0-9]+)/i);
-                    if (snMatch) {
-                        sn = snMatch[1];
-                        // Optionally strip SN from model for cleaner display, but user might prefer it as is
-                    }
+                    const snMatch = item.model.match(/(?:sn|SN|S\/N|S\.N\.|SN:)\s*([A-Z0-9]+)/i);
+                    if (snMatch) sn = snMatch[1];
                 }
 
                 return {
                     ...item,
                     sn: sn,
-                    ref: item.ref || '', // Equipment reference
-                    provider_contact: item.provider_contact || '', // Provider contact
-                    priority: item.priority || 'NORMAL', // DEFAULT_PRIORITY
+                    ref: item.ref || '',
+                    provider_contact: item.provider_contact || '',
+                    priority: item.priority || 'NORMAL',
                     status: item.delivery_date ? 'RECIBIDO' : (item.status || 'ENVIADO A SERVICIO TECNICO')
                 };
             });
-            setShipments(transformedData);
-            localStorage.setItem('hospital_shipments', JSON.stringify(transformedData));
+
+            transformedData.forEach(shipment => {
+                const docRef = doc(shipmentsRef, shipment.id);
+                batch.set(docRef, shipment);
+            });
+
+            await batch.commit();
+            console.log('✅ Firestore initialized with', transformedData.length, 'shipments');
         }
 
-        if (savedServices) {
-            setServices(JSON.parse(savedServices));
-        } else {
-            setServices(DEFAULT_SERVICES);
-            localStorage.setItem('hospital_services', JSON.stringify(DEFAULT_SERVICES));
+        // Initialize services
+        const servicesDoc = doc(db, 'config', 'services');
+        const servicesSnap = await getDocs(collection(db, 'config'));
+        if (servicesSnap.empty) {
+            await setDoc(servicesDoc, { list: DEFAULT_SERVICES });
         }
+    };
 
-        setLoading(false);
+    useEffect(() => {
+        // Subscribe to real-time updates
+        const unsubscribeShipments = onSnapshot(
+            collection(db, 'shipments'),
+            (snapshot) => {
+                const shipmentsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                setShipments(shipmentsData);
+                setLoading(false);
+                console.log('🔄 Shipments updated:', shipmentsData.length);
+            },
+            (error) => {
+                console.error('❌ Error fetching shipments:', error);
+                setLoading(false);
+            }
+        );
+
+        const unsubscribeServices = onSnapshot(
+            doc(db, 'config', 'services'),
+            (docSnap) => {
+                if (docSnap.exists()) {
+                    setServices(docSnap.data().list || DEFAULT_SERVICES);
+                }
+            }
+        );
+
+        // Initialize data if needed
+        initializeFirestore();
+
+        return () => {
+            unsubscribeShipments();
+            unsubscribeServices();
+        };
     }, []);
 
-    const updateShipments = (updated) => {
-        setShipments(updated);
-        localStorage.setItem('hospital_shipments', JSON.stringify(updated));
+    const addShipment = async (newShipment) => {
+        try {
+            const docRef = doc(db, 'shipments', newShipment.id);
+            await setDoc(docRef, newShipment);
+            console.log('✅ Shipment added:', newShipment.id);
+        } catch (error) {
+            console.error('❌ Error adding shipment:', error);
+        }
     };
 
-    const addShipment = (newShipment) => {
-        updateShipments([newShipment, ...shipments]);
+    const editShipment = async (updatedShipment) => {
+        try {
+            const docRef = doc(db, 'shipments', updatedShipment.id);
+            await updateDoc(docRef, updatedShipment);
+            console.log('✅ Shipment updated:', updatedShipment.id);
+        } catch (error) {
+            console.error('❌ Error updating shipment:', error);
+        }
     };
 
-    const editShipment = (updatedShipment) => {
-        const updated = shipments.map(s => s.id === updatedShipment.id ? updatedShipment : s);
-        updateShipments(updated);
+    const addService = async (newService) => {
+        try {
+            const updated = [...services, newService.toUpperCase()];
+            setServices(updated);
+            await setDoc(doc(db, 'config', 'services'), { list: updated });
+            console.log('✅ Service added:', newService);
+        } catch (error) {
+            console.error('❌ Error adding service:', error);
+        }
     };
 
-    const addService = (newService) => {
-        const updated = [...services, newService.toUpperCase()];
-        setServices(updated);
-        localStorage.setItem('hospital_services', JSON.stringify(updated));
-    };
-
-    // Helper to calculate days out for sorting
     const getDaysOut = (s) => {
         if (!s.shipment_date) return 0;
         const start = new Date(s.shipment_date);
@@ -89,7 +134,7 @@ function App() {
 
     const activeShipments = shipments
         .filter(s => !s.delivery_date)
-        .sort((a, b) => getDaysOut(b) - getDaysOut(a)); // Default sort: Días Fuera desc
+        .sort((a, b) => getDaysOut(b) - getDaysOut(a));
 
     const receivedShipments = shipments
         .filter(s => s.delivery_date)
