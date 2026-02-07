@@ -32,9 +32,9 @@ const ShipmentCard = ({ shipment, onClick, onQuickReceipt }) => {
                             EQUIPO EN PRÉSTAMO
                         </div>
                     )}
-                    <div className={`text-white text-[9px] font-black px-3 py-1.5 rounded-lg shadow-xl tracking-tighter uppercase whitespace-nowrap ${isEnRoute ? 'bg-quiron-accent' : 'bg-green-500'
+                    <div className={`text-white text-[9px] font-black px-3 py-1.5 rounded-lg shadow-xl tracking-tighter uppercase whitespace-nowrap ${shipment.status === 'RECIBIDO' ? 'bg-green-500' : 'bg-quiron-accent'
                         }`}>
-                        {isEnRoute ? 'FUERA DE HOSPITAL' : 'EN HOSPITAL'}
+                        {shipment.status || 'ENVIADO A SERVICIO TECNICO'}
                     </div>
                     {shipment.priority === 'ALTA' && (
                         <div className="bg-red-500 text-white text-[9px] font-black px-3 py-1.5 rounded-lg shadow-xl tracking-tighter uppercase whitespace-nowrap flex items-center gap-1">
