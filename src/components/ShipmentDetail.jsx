@@ -155,15 +155,25 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onA
                         </div>
                         <div className="flex-1">
                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Estado Actual</p>
-                            <select
-                                value={data.status}
-                                onChange={(e) => handleStatusChange(e.target.value)}
-                                className="w-full text-xs font-black text-quiron-secondary bg-transparent outline-none cursor-pointer"
-                            >
-                                {STATUS_WORKFLOW.map(s => (
-                                    <option key={s} value={s}>{s}</option>
-                                ))}
-                            </select>
+                            {isEditing ? (
+                                <select
+                                    value={data.status}
+                                    onChange={(e) => handleStatusChange(e.target.value)}
+                                    className="w-full text-xs font-black text-quiron-secondary bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 outline-none cursor-pointer"
+                                >
+                                    {STATUS_WORKFLOW.map(s => (
+                                        <option key={s} value={s}>{s}</option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <p className={`text-xs font-black ${data.status === 'RECIBIDO' ? 'text-green-600' :
+                                        data.status === 'PRESUPUESTO ACEPTADO' ? 'text-orange-500' :
+                                            data.status === 'REPARANDO EN ELECTROMEDICINA' ? 'text-yellow-600' :
+                                                'text-red-500'
+                                    }`}>
+                                    {data.status || 'ENVIADO A SERVICIO TECNICO'}
+                                </p>
+                            )}
                         </div>
                     </div>
 
