@@ -32,12 +32,11 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onA
 
     const uniqueProviders = useMemo(() => {
         const providers = allShipments.map(s => s.provider);
-        return [...new Set(providers)].filter(p =>
-            p.toLowerCase().includes(providerSearch.toLowerCase())
-        );
+        return [...new Set(providers)]
+            .filter(p => p.toLowerCase().includes(providerSearch.toLowerCase()))
+            .sort((a, b) => a.localeCompare(b, 'es'));
     }, [allShipments, providerSearch]);
 
-    // Get unique references with their associated data
     const uniqueReferences = useMemo(() => {
         const refMap = new Map();
         (allShipments || [])
@@ -55,10 +54,21 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onA
                 }
             });
         const searchTerm = (refSearch || data.ref || '').toUpperCase();
-        return Array.from(refMap.values()).filter(r =>
-            r.ref.includes(searchTerm)
-        );
+        return Array.from(refMap.values())
+            .filter(r => r.ref.includes(searchTerm))
+            .sort((a, b) => a.ref.localeCompare(b.ref, 'es'));
     }, [allShipments, refSearch, data.ref]);
+
+    // Get unique contacts
+    const [showContacts, setShowContacts] = useState(false);
+    const uniqueContacts = useMemo(() => {
+        const contacts = (allShipments || [])
+            .filter(s => s.provider_contact && s.provider_contact.trim())
+            .map(s => s.provider_contact);
+        return [...new Set(contacts)]
+            .filter(c => c.toLowerCase().includes((data.provider_contact || '').toLowerCase()))
+            .sort((a, b) => a.localeCompare(b, 'es'));
+    }, [allShipments, data.provider_contact]);
 
     // Handle reference selection
     const handleRefSelect = (refData) => {
@@ -440,12 +450,44 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onA
                             )}
                         </div>
 
-                        <DetailItem
-                            label="Contacto Proveedor"
-                            value={data.provider_contact || 'Sin contacto'}
-                            edit={isEditing}
-                            onChange={(v) => setData({ ...data, provider_contact: v })}
-                        />
+                        <div className="bg-quiron-bg rounded-3xl p-5 border-2 border-transparent">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Contacto Proveedor</p>
+                            {isEditing ? (
+                                <div className="relative">
+                                    <input
+                                        className="w-full bg-white rounded-xl px-4 py-3 font-bold text-quiron-secondary outline-none border-2 border-gray-100 focus:border-quiron-primary transition-colors"
+                                        placeholder="Buscar o añadir contacto..."
+                                        value={data.provider_contact || ''}
+                                        onFocus={() => setShowContacts(true)}
+                                        onChange={(e) => {
+                                            setData({ ...data, provider_contact: e.target.value });
+                                            setShowContacts(true);
+                                        }}
+                                        onBlur={() => setTimeout(() => setShowContacts(false), 150)}
+                                    />
+                                    {showContacts && uniqueContacts.length > 0 && (
+                                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-2xl shadow-xl z-20 max-h-40 overflow-y-auto">
+                                            {uniqueContacts.slice(0, 6).map(contact => (
+                                                <button
+                                                    key={contact}
+                                                    type="button"
+                                                    className="w-full text-left px-4 py-3 hover:bg-quiron-primary/5 text-sm font-medium transition-colors border-b border-gray-100 last:border-0"
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        setData({ ...data, provider_contact: contact });
+                                                        setShowContacts(false);
+                                                    }}
+                                                >
+                                                    {contact}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <p className="font-bold text-quiron-secondary">{data.provider_contact || 'Sin contacto'}</p>
+                            )}
+                        </div>
                         <div className="grid grid-cols-2 gap-4">
                             <DetailItem label="Fecha Envío" value={data.shipment_date} type="date" edit={isEditing} onChange={(v) => setData({ ...data, shipment_date: v })} />
                             <DetailItem label="Fecha Entrega" value={data.delivery_date || "Pendiente"} type="date" edit={isEditing} onChange={(v) => setData({ ...data, delivery_date: v })} />
