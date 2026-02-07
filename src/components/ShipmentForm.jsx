@@ -23,6 +23,7 @@ const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments }
     const [isAddingService, setIsAddingService] = useState(false);
     const [newServiceName, setNewServiceName] = useState('');
     const [showProviders, setShowProviders] = useState(false);
+    const [showReferences, setShowReferences] = useState(false);
     const [refAutoFilled, setRefAutoFilled] = useState(false);
 
     const uniqueProviders = useMemo(() => {
@@ -32,29 +33,49 @@ const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments }
         );
     }, [allShipments, formData.provider]);
 
-    // Auto-fill model and service when a known reference is entered
+    // Get unique references with their associated data
+    const uniqueReferences = useMemo(() => {
+        const refMap = new Map();
+        (allShipments || [])
+            .filter(s => s.ref && s.ref.trim())
+            .sort((a, b) => new Date(b.shipment_date) - new Date(a.shipment_date))
+            .forEach(s => {
+                if (!refMap.has(s.ref.toUpperCase())) {
+                    refMap.set(s.ref.toUpperCase(), {
+                        ref: s.ref.toUpperCase(),
+                        model: s.model,
+                        service: s.service,
+                        provider: s.provider,
+                        provider_contact: s.provider_contact || ''
+                    });
+                }
+            });
+        return Array.from(refMap.values()).filter(r =>
+            r.ref.includes(formData.ref.toUpperCase())
+        );
+    }, [allShipments, formData.ref]);
+
+    // Handle reference selection from dropdown
+    const handleRefSelect = (refData) => {
+        setFormData(prev => ({
+            ...prev,
+            ref: refData.ref,
+            model: refData.model,
+            service: refData.service,
+            provider: refData.provider,
+            provider_contact: refData.provider_contact
+        }));
+        setRefAutoFilled(true);
+        setShowReferences(false);
+        setTimeout(() => setRefAutoFilled(false), 2000);
+    };
+
+    // Handle typing in reference field
     const handleRefChange = (e) => {
         const newRef = e.target.value.toUpperCase();
         setFormData({ ...formData, ref: newRef });
         setRefAutoFilled(false);
-
-        if (newRef && allShipments) {
-            // Find most recent shipment with this reference
-            const matchingShipment = [...allShipments]
-                .filter(s => s.ref && s.ref.toUpperCase() === newRef)
-                .sort((a, b) => new Date(b.shipment_date) - new Date(a.shipment_date))[0];
-
-            if (matchingShipment) {
-                setFormData(prev => ({
-                    ...prev,
-                    ref: newRef,
-                    model: matchingShipment.model,
-                    service: matchingShipment.service
-                }));
-                setRefAutoFilled(true);
-                setTimeout(() => setRefAutoFilled(false), 2000);
-            }
-        }
+        setShowReferences(true);
     };
 
     // ... handleImageChange and handleAddService ...
@@ -121,10 +142,11 @@ const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments }
                     <InputWrapper label="Referencia del Equipo">
                         <div className="relative">
                             <input
-                                className="input-premium bg-gray-50 border-gray-100"
-                                placeholder="Ej: REF-001, EQUIPO-A..."
+                                className="input-premium bg-teal-50 border-teal-100"
+                                placeholder="Buscar o crear referencia..."
                                 value={formData.ref}
                                 onChange={handleRefChange}
+                                onFocus={() => setShowReferences(true)}
                             />
                             {refAutoFilled && (
                                 <motion.div
@@ -136,8 +158,45 @@ const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments }
                                     ✓ Auto-completado
                                 </motion.div>
                             )}
+                            <AnimatePresence>
+                                {showReferences && (formData.ref.length > 0 || uniqueReferences.length > 0) && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: 10 }}
+                                        className="absolute z-50 w-full mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden max-h-60 overflow-y-auto"
+                                    >
+                                        {uniqueReferences.slice(0, 8).map(refData => (
+                                            <button
+                                                key={refData.ref}
+                                                type="button"
+                                                onClick={() => handleRefSelect(refData)}
+                                                className="w-full text-left px-5 py-3 hover:bg-teal-50 transition-colors border-b border-gray-50 last:border-0"
+                                            >
+                                                <div className="flex justify-between items-start">
+                                                    <span className="font-black text-quiron-secondary text-sm">{refData.ref}</span>
+                                                    <span className="text-[9px] bg-quiron-primary/10 text-quiron-primary px-2 py-0.5 rounded-full font-bold">{refData.service}</span>
+                                                </div>
+                                                <p className="text-xs text-gray-500 truncate mt-1">{refData.model}</p>
+                                                <p className="text-[10px] text-gray-400 mt-1">Proveedor: {refData.provider}</p>
+                                            </button>
+                                        ))}
+                                        {formData.ref && !uniqueReferences.find(r => r.ref === formData.ref.toUpperCase()) && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setShowReferences(false);
+                                                }}
+                                                className="w-full text-left px-5 py-3 bg-teal-50 hover:bg-teal-100 transition-colors text-teal-700 font-bold text-sm"
+                                            >
+                                                + Crear nueva referencia: <span className="font-black">{formData.ref.toUpperCase()}</span>
+                                            </button>
+                                        )}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
-                        <p className="text-[9px] text-gray-400 mt-2 font-bold">Si introduces una referencia conocida, se autocompletará el modelo y servicio</p>
+                        <p className="text-[9px] text-gray-400 mt-2 font-bold">Selecciona una referencia existente o crea una nueva. Auto-completa modelo, servicio y proveedor.</p>
                     </InputWrapper>
 
                     <InputWrapper label="Prioridad de Reparación">

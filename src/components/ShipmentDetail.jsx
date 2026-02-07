@@ -23,6 +23,8 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onA
     const [showProviders, setShowProviders] = useState(false);
     const [isAddingService, setIsAddingService] = useState(false);
     const [newServiceName, setNewServiceName] = useState('');
+    const [showReferences, setShowReferences] = useState(false);
+    const [refSearch, setRefSearch] = useState('');
 
     const uniqueProviders = useMemo(() => {
         const providers = allShipments.map(s => s.provider);
@@ -30,6 +32,43 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onA
             p.toLowerCase().includes(providerSearch.toLowerCase())
         );
     }, [allShipments, providerSearch]);
+
+    // Get unique references with their associated data
+    const uniqueReferences = useMemo(() => {
+        const refMap = new Map();
+        (allShipments || [])
+            .filter(s => s.ref && s.ref.trim())
+            .sort((a, b) => new Date(b.shipment_date) - new Date(a.shipment_date))
+            .forEach(s => {
+                if (!refMap.has(s.ref.toUpperCase())) {
+                    refMap.set(s.ref.toUpperCase(), {
+                        ref: s.ref.toUpperCase(),
+                        model: s.model,
+                        service: s.service,
+                        provider: s.provider,
+                        provider_contact: s.provider_contact || ''
+                    });
+                }
+            });
+        const searchTerm = (refSearch || data.ref || '').toUpperCase();
+        return Array.from(refMap.values()).filter(r =>
+            r.ref.includes(searchTerm)
+        );
+    }, [allShipments, refSearch, data.ref]);
+
+    // Handle reference selection
+    const handleRefSelect = (refData) => {
+        setData(prev => ({
+            ...prev,
+            ref: refData.ref,
+            model: refData.model,
+            service: refData.service,
+            provider: refData.provider,
+            provider_contact: refData.provider_contact
+        }));
+        setShowReferences(false);
+        setRefSearch('');
+    };
 
     const handleStatusChange = (newStatus) => {
         const updated = { ...data, status: newStatus };
@@ -235,14 +274,51 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onA
                                         onChange={(e) => setData({ ...data, sn: e.target.value })}
                                     />
                                 </div>
-                                <div className="mt-4 flex flex-col gap-2">
+                                <div className="mt-4 flex flex-col gap-2 relative">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Referencia del Equipo</label>
                                     <input
-                                        className="bg-quiron-primary/5 border-2 border-quiron-primary/20 focus:border-quiron-primary/40 rounded-2xl py-3 px-5 outline-none font-bold text-quiron-primary transition-all"
-                                        value={data.ref || ''}
-                                        placeholder="Ej: REF-001, EQUIPO-A..."
-                                        onChange={(e) => setData({ ...data, ref: e.target.value.toUpperCase() })}
+                                        className="bg-teal-50 border-2 border-teal-200 focus:border-teal-400 rounded-2xl py-3 px-5 outline-none font-bold text-teal-700 transition-all"
+                                        value={refSearch || data.ref || ''}
+                                        placeholder="Buscar o crear referencia..."
+                                        onFocus={() => setShowReferences(true)}
+                                        onChange={(e) => {
+                                            setRefSearch(e.target.value.toUpperCase());
+                                            setShowReferences(true);
+                                        }}
                                     />
+                                    {showReferences && (refSearch || uniqueReferences.length > 0) && (
+                                        <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden max-h-60 overflow-y-auto">
+                                            {uniqueReferences.slice(0, 8).map(refData => (
+                                                <button
+                                                    key={refData.ref}
+                                                    type="button"
+                                                    onClick={() => handleRefSelect(refData)}
+                                                    className="w-full text-left px-5 py-3 hover:bg-teal-50 transition-colors border-b border-gray-50 last:border-0"
+                                                >
+                                                    <div className="flex justify-between items-start">
+                                                        <span className="font-black text-quiron-secondary text-sm">{refData.ref}</span>
+                                                        <span className="text-[9px] bg-quiron-primary/10 text-quiron-primary px-2 py-0.5 rounded-full font-bold">{refData.service}</span>
+                                                    </div>
+                                                    <p className="text-xs text-gray-500 truncate mt-1">{refData.model}</p>
+                                                    <p className="text-[10px] text-gray-400 mt-1">Proveedor: {refData.provider}</p>
+                                                </button>
+                                            ))}
+                                            {refSearch && !uniqueReferences.find(r => r.ref === refSearch) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setData({ ...data, ref: refSearch });
+                                                        setShowReferences(false);
+                                                        setRefSearch('');
+                                                    }}
+                                                    className="w-full text-left px-5 py-3 bg-teal-50 hover:bg-teal-100 transition-colors text-teal-700 font-bold text-sm"
+                                                >
+                                                    + Crear nueva referencia: <span className="font-black">{refSearch}</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                    <p className="text-[9px] text-gray-400 mt-1 font-bold ml-1">Selecciona referencia existente o crea una nueva</p>
                                 </div>
                             </div>
                         ) : (
