@@ -449,7 +449,7 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onA
 
                     {/* Observations */}
                     <div className="md:col-span-2">
-                        <Section label="Observaciones Técnicas" icon={<ClipboardList size={18} />}>
+                        <Section label="Problema Constatado/Observaciones" icon={<ClipboardList size={18} />}>
                             {isEditing ? (
                                 <textarea
                                     className="w-full p-6 bg-gray-50 rounded-3xl border-2 border-transparent focus:border-quiron-primary outline-none font-medium min-h-[150px]"
