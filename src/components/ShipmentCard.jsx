@@ -32,7 +32,10 @@ const ShipmentCard = ({ shipment, onClick, onQuickReceipt }) => {
                             EQUIPO EN PRÉSTAMO
                         </div>
                     )}
-                    <div className={`text-white text-[9px] font-black px-3 py-1.5 rounded-lg shadow-xl tracking-tighter uppercase whitespace-nowrap ${shipment.status === 'RECIBIDO' ? 'bg-green-500' : 'bg-quiron-accent'
+                    <div className={`text-white text-[9px] font-black px-3 py-1.5 rounded-lg shadow-xl tracking-tighter uppercase whitespace-nowrap ${shipment.status === 'RECIBIDO' ? 'bg-green-500' :
+                            shipment.status === 'PRESUPUESTO ACEPTADO' ? 'bg-orange-500' :
+                                shipment.status === 'REPARANDO EN ELECTROMEDICINA' ? 'bg-yellow-500' :
+                                    'bg-red-500'
                         }`}>
                         {shipment.status || 'ENVIADO A SERVICIO TECNICO'}
                     </div>
