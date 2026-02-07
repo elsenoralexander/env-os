@@ -19,6 +19,7 @@ const Dashboard = ({
     onViewChange,
     onAddShipment,
     onEditShipment,
+    onDeleteShipment,
     onAddService
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -255,6 +256,10 @@ const Dashboard = ({
                             services={services}
                             onSave={(data) => {
                                 onEditShipment(data);
+                                setSelectedShipment(null);
+                            }}
+                            onDelete={(id) => {
+                                onDeleteShipment(id);
                                 setSelectedShipment(null);
                             }}
                             onQuickReceipt={handleQuickReceipt}

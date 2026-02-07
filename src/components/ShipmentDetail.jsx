@@ -18,7 +18,7 @@ const STATUS_WORKFLOW = [
     'RECIBIDO'
 ];
 
-const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onAddService }) => {
+const ShipmentDetail = ({ shipment, services, allShipments, onSave, onDelete, onClose, onAddService }) => {
     const [data, setData] = useState({ ...shipment, status: shipment.status || STATUS_WORKFLOW[1] });
     const [isEditing, setIsEditing] = useState(false);
     const [providerSearch, setProviderSearch] = useState('');
@@ -29,6 +29,7 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onA
     const [refSearch, setRefSearch] = useState('');
     const [showEmailPopup, setShowEmailPopup] = useState(false);
     const [showImageLightbox, setShowImageLightbox] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     const uniqueProviders = useMemo(() => {
         const providers = allShipments.map(s => s.provider);
@@ -533,13 +534,20 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onA
                 {isEditing && (
                     <motion.div
                         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                        className="mt-12 flex gap-4"
+                        className="mt-12 flex gap-4 items-center"
                     >
                         <button onClick={handleSave} className="btn-premium-primary flex-1 justify-center">
                             <Save size={20} /> Guardar Cambios
                         </button>
                         <button onClick={() => { setIsEditing(false); setShowProviders(false); }} className="px-8 font-bold text-gray-400 hover:text-quiron-secondary transition-colors">
                             Cancelar
+                        </button>
+                        <button
+                            onClick={() => setShowDeleteConfirm(true)}
+                            className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                            title="Eliminar envío"
+                        >
+                            <Trash2 size={20} />
                         </button>
                     </motion.div>
                 )}
@@ -585,6 +593,55 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onA
                         </button>
                         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-white text-sm font-bold">
                             {data.model} - {data.ref}
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+
+        {/* Delete Confirmation */}
+        <AnimatePresence>
+            {showDeleteConfirm && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                    onClick={() => setShowDeleteConfirm(false)}
+                >
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full overflow-hidden"
+                    >
+                        <div className="bg-red-500 p-6 text-white text-center">
+                            <Trash2 size={48} className="mx-auto mb-3" />
+                            <h2 className="text-xl font-black">¿Eliminar este envío?</h2>
+                        </div>
+                        <div className="p-6 text-center">
+                            <p className="text-gray-600 mb-2">Estás a punto de eliminar:</p>
+                            <p className="font-black text-quiron-secondary text-lg">{data.model}</p>
+                            <p className="text-sm text-gray-400">{data.ref} - SN: {data.sn}</p>
+                            <p className="text-xs text-red-500 mt-4 font-bold">⚠️ Esta acción no se puede deshacer</p>
+                        </div>
+                        <div className="p-6 bg-gray-50 flex gap-4">
+                            <button
+                                onClick={() => setShowDeleteConfirm(false)}
+                                className="flex-1 py-3 px-6 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowDeleteConfirm(false);
+                                    onDelete(data.id);
+                                }}
+                                className="flex-1 py-3 px-6 rounded-xl font-bold bg-red-500 text-white hover:bg-red-600 transition-colors shadow-lg"
+                            >
+                                Eliminar
+                            </button>
                         </div>
                     </motion.div>
                 </motion.div>

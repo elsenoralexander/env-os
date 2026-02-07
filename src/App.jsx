@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
-import { collection, doc, getDocs, setDoc, updateDoc, onSnapshot, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch } from 'firebase/firestore';
 import initialData from './data/initial_data.json';
 import Dashboard from './components/Dashboard';
 import { AnimatePresence } from 'framer-motion';
@@ -114,6 +114,16 @@ function App() {
         }
     };
 
+    const deleteShipment = async (shipmentId) => {
+        try {
+            const docRef = doc(db, 'shipments', shipmentId);
+            await deleteDoc(docRef);
+            console.log('✅ Shipment deleted:', shipmentId);
+        } catch (error) {
+            console.error('❌ Error deleting shipment:', error);
+        }
+    };
+
     const addService = async (newService) => {
         try {
             const updated = [...services, newService.toUpperCase()];
@@ -159,6 +169,7 @@ function App() {
                 onViewChange={setCurrentView}
                 onAddShipment={addShipment}
                 onEditShipment={editShipment}
+                onDeleteShipment={deleteShipment}
                 onAddService={addService}
             />
         </div>
