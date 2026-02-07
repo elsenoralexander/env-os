@@ -167,9 +167,9 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onA
                                 </select>
                             ) : (
                                 <p className={`text-xs font-black ${data.status === 'RECIBIDO' ? 'text-green-600' :
-                                        data.status === 'PRESUPUESTO ACEPTADO' ? 'text-orange-500' :
-                                            data.status === 'REPARANDO EN ELECTROMEDICINA' ? 'text-yellow-600' :
-                                                'text-red-500'
+                                    data.status === 'PRESUPUESTO ACEPTADO' ? 'text-orange-500' :
+                                        data.status === 'REPARANDO EN ELECTROMEDICINA' ? 'text-yellow-600' :
+                                            'text-red-500'
                                     }`}>
                                     {data.status || 'ENVIADO A SERVICIO TECNICO'}
                                 </p>
@@ -177,7 +177,7 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onA
                         </div>
                     </div>
 
-                    {data.status !== 'RECIBIDO' && (
+                    {isEditing && data.status !== 'RECIBIDO' && (
                         <button
                             onClick={handleQuickReceiptLocal}
                             className="w-full h-16 medical-gradient text-white rounded-[2rem] font-black text-xs tracking-[0.2em] shadow-xl shadow-quiron-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 border border-white/20"
@@ -200,13 +200,21 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onA
                         </div>
                         <div className="p-5 rounded-[2rem] bg-white border border-gray-100 shadow-sm relative overflow-hidden group">
                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Prioridad</p>
-                            <button
-                                onClick={() => setData({ ...data, priority: data.priority === 'ALTA' ? 'NORMAL' : 'ALTA' })}
-                                className={`text-sm font-black uppercase transition-all flex items-center gap-1 ${data.priority === 'ALTA' ? 'text-red-500' : 'text-quiron-primary'}`}
-                            >
-                                {data.priority === 'ALTA' && <AlertCircle size={14} />}
-                                {data.priority || 'NORMAL'}
-                            </button>
+                            {isEditing ? (
+                                <button
+                                    onClick={() => setData({ ...data, priority: data.priority === 'ALTA' ? 'NORMAL' : 'ALTA' })}
+                                    className={`text-sm font-black uppercase transition-all flex items-center gap-1 ${data.priority === 'ALTA' ? 'text-red-500' : 'text-quiron-primary'}`}
+                                >
+                                    {data.priority === 'ALTA' && <AlertCircle size={14} />}
+                                    {data.priority || 'NORMAL'}
+                                    <span className="text-[9px] text-gray-400 ml-1">(click cambiar)</span>
+                                </button>
+                            ) : (
+                                <p className={`text-sm font-black uppercase flex items-center gap-1 ${data.priority === 'ALTA' ? 'text-red-500' : 'text-quiron-primary'}`}>
+                                    {data.priority === 'ALTA' && <AlertCircle size={14} />}
+                                    {data.priority || 'NORMAL'}
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>
