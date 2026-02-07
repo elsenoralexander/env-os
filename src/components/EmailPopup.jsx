@@ -52,10 +52,10 @@ Muchas gracias.`;
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-white rounded-[2rem] shadow-2xl max-w-lg w-full overflow-hidden"
+                className="bg-white rounded-[2rem] shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col"
             >
                 {/* Header */}
-                <div className="medical-gradient p-6 text-white">
+                <div className="medical-gradient p-6 text-white flex-shrink-0">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
@@ -75,8 +75,8 @@ Muchas gracias.`;
                     </div>
                 </div>
 
-                {/* Content */}
-                <div className="p-6 space-y-6">
+                {/* Content - Scrollable */}
+                <div className="p-6 space-y-6 overflow-y-auto flex-1">
                     {/* Delivery Type Selection */}
                     <div className="space-y-3">
                         <p className="text-sm font-black text-quiron-secondary uppercase tracking-widest">¿Solicitar recogida o enviar desde centro?</p>
@@ -84,8 +84,8 @@ Muchas gracias.`;
                             <button
                                 onClick={() => setDeliveryType('pickup')}
                                 className={`p-5 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 ${deliveryType === 'pickup'
-                                        ? 'border-quiron-primary bg-quiron-primary/5 shadow-lg'
-                                        : 'border-gray-200 hover:border-quiron-primary/50'
+                                    ? 'border-quiron-primary bg-quiron-primary/5 shadow-lg'
+                                    : 'border-gray-200 hover:border-quiron-primary/50'
                                     }`}
                             >
                                 <div className={`p-3 rounded-xl ${deliveryType === 'pickup' ? 'bg-quiron-primary text-white' : 'bg-gray-100 text-gray-500'}`}>
@@ -104,8 +104,8 @@ Muchas gracias.`;
                             <button
                                 onClick={() => setDeliveryType('hospital')}
                                 className={`p-5 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 ${deliveryType === 'hospital'
-                                        ? 'border-quiron-primary bg-quiron-primary/5 shadow-lg'
-                                        : 'border-gray-200 hover:border-quiron-primary/50'
+                                    ? 'border-quiron-primary bg-quiron-primary/5 shadow-lg'
+                                    : 'border-gray-200 hover:border-quiron-primary/50'
                                     }`}
                             >
                                 <div className={`p-3 rounded-xl ${deliveryType === 'hospital' ? 'bg-quiron-primary text-white' : 'bg-gray-100 text-gray-500'}`}>
@@ -131,8 +131,8 @@ Muchas gracias.`;
                             <button
                                 onClick={() => setNeedsLoan(true)}
                                 className={`p-4 rounded-2xl border-2 transition-all ${needsLoan
-                                        ? 'border-green-500 bg-green-50 text-green-700'
-                                        : 'border-gray-200 text-gray-500 hover:border-green-300'
+                                    ? 'border-green-500 bg-green-50 text-green-700'
+                                    : 'border-gray-200 text-gray-500 hover:border-green-300'
                                     }`}
                             >
                                 <p className="font-black text-lg">Sí</p>
@@ -141,8 +141,8 @@ Muchas gracias.`;
                             <button
                                 onClick={() => setNeedsLoan(false)}
                                 className={`p-4 rounded-2xl border-2 transition-all ${!needsLoan
-                                        ? 'border-gray-500 bg-gray-50 text-gray-700'
-                                        : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                                    ? 'border-gray-500 bg-gray-50 text-gray-700'
+                                    : 'border-gray-200 text-gray-500 hover:border-gray-300'
                                     }`}
                             >
                                 <p className="font-black text-lg">No</p>
@@ -170,7 +170,7 @@ Muchas gracias.`;
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 bg-gray-50 border-t border-gray-100">
+                <div className="p-6 bg-gray-50 border-t border-gray-100 flex-shrink-0">
                     <button
                         onClick={handleSendEmail}
                         className="w-full h-14 medical-gradient text-white rounded-2xl font-black text-sm tracking-widest shadow-xl shadow-quiron-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"

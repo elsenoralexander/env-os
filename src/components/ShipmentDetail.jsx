@@ -28,6 +28,7 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onA
     const [showReferences, setShowReferences] = useState(false);
     const [refSearch, setRefSearch] = useState('');
     const [showEmailPopup, setShowEmailPopup] = useState(false);
+    const [showImageLightbox, setShowImageLightbox] = useState(false);
 
     const uniqueProviders = useMemo(() => {
         const providers = allShipments.map(s => s.provider);
@@ -133,13 +134,23 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onA
         <div className="bg-white rounded-5xl overflow-hidden shadow-2xl flex flex-col lg:flex-row h-[90vh] lg:h-auto max-h-[90vh]">
             {/* Left side: Photo & Status Overview */}
             <div className="lg:w-1/3 bg-gray-50 p-8 border-r border-gray-100 flex flex-col">
-                <div className="relative aspect-square rounded-4xl overflow-hidden bg-white shadow-inner mb-8 group">
+                <div
+                    className={`relative aspect-square rounded-4xl overflow-hidden bg-white shadow-inner mb-8 group ${data.image && !isEditing ? 'cursor-pointer' : ''}`}
+                    onClick={() => data.image && !isEditing && setShowImageLightbox(true)}
+                >
                     {data.image ? (
-                        <img src={data.image} alt={data.model} className="w-full h-full object-cover" />
+                        <img src={data.image} alt={data.model} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
                     ) : (
                         <div className="w-full h-full medical-gradient opacity-10 flex items-center justify-center">
                             <Camera size={64} strokeWidth={1} className="text-quiron-secondary" />
                             <p className="mt-4 font-bold text-xs tracking-widest uppercase absolute bottom-8">Sin Evidencia</p>
+                        </div>
+                    )}
+                    {data.image && !isEditing && (
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 flex items-center justify-center transition-all">
+                            <div className="opacity-0 group-hover:opacity-100 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full text-xs font-bold text-quiron-secondary shadow-lg transition-opacity">
+                                Click para ampliar
+                            </div>
                         </div>
                     )}
                     {isEditing && (
@@ -500,6 +511,41 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onA
                     shipment={data}
                     onClose={() => setShowEmailPopup(false)}
                 />
+            )}
+        </AnimatePresence>
+
+        {/* Image Lightbox */}
+        <AnimatePresence>
+            {showImageLightbox && data.image && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                    onClick={() => setShowImageLightbox(false)}
+                >
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        className="relative max-w-4xl max-h-[90vh] w-full"
+                    >
+                        <img
+                            src={data.image}
+                            alt={data.model}
+                            className="w-full h-full object-contain rounded-3xl shadow-2xl"
+                        />
+                        <button
+                            onClick={() => setShowImageLightbox(false)}
+                            className="absolute top-4 right-4 p-3 bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-white/30 transition-colors"
+                        >
+                            <X size={24} />
+                        </button>
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-white text-sm font-bold">
+                            {data.model} - {data.ref}
+                        </div>
+                    </motion.div>
+                </motion.div>
             )}
         </AnimatePresence>
     </>);
