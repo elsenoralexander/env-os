@@ -3,11 +3,12 @@ import {
     X, Calendar, Building2, Save, Trash2, Camera,
     CheckCircle2, Clock, AlertCircle, Info, Plus,
     Truck, Package, ClipboardList, Settings2, Pencil,
-    ChevronDown, Search, Loader2
+    ChevronDown, Search, Loader2, Mail
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { uploadToCloudinary } from '../cloudinary';
+import EmailPopup from './EmailPopup';
 
 const STATUS_WORKFLOW = [
     'REPARANDO EN ELECTROMEDICINA',
@@ -26,6 +27,7 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onA
     const [newServiceName, setNewServiceName] = useState('');
     const [showReferences, setShowReferences] = useState(false);
     const [refSearch, setRefSearch] = useState('');
+    const [showEmailPopup, setShowEmailPopup] = useState(false);
 
     const uniqueProviders = useMemo(() => {
         const providers = allShipments.map(s => s.provider);
@@ -127,7 +129,7 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onA
         }
     };
 
-    return (
+    return (<>
         <div className="bg-white rounded-5xl overflow-hidden shadow-2xl flex flex-col lg:flex-row h-[90vh] lg:h-auto max-h-[90vh]">
             {/* Left side: Photo & Status Overview */}
             <div className="lg:w-1/3 bg-gray-50 p-8 border-r border-gray-100 flex flex-col">
@@ -373,13 +375,22 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onA
                     </div>
                     <div className="flex gap-2">
                         {!isEditing && (
-                            <button
-                                onClick={() => setIsEditing(true)}
-                                className="p-3 text-quiron-secondary hover:text-quiron-primary hover:bg-quiron-primary/5 rounded-2xl transition-all group"
-                                title="Editar"
-                            >
-                                <Pencil size={24} className="group-hover:scale-110 transition-transform" />
-                            </button>
+                            <>
+                                <button
+                                    onClick={() => setShowEmailPopup(true)}
+                                    className="p-3 text-quiron-secondary hover:text-quiron-primary hover:bg-quiron-primary/5 rounded-2xl transition-all group"
+                                    title="Enviar correo al proveedor"
+                                >
+                                    <Mail size={24} className="group-hover:scale-110 transition-transform" />
+                                </button>
+                                <button
+                                    onClick={() => setIsEditing(true)}
+                                    className="p-3 text-quiron-secondary hover:text-quiron-primary hover:bg-quiron-primary/5 rounded-2xl transition-all group"
+                                    title="Editar"
+                                >
+                                    <Pencil size={24} className="group-hover:scale-110 transition-transform" />
+                                </button>
+                            </>
                         )}
                         <button
                             onClick={onClose}
@@ -481,7 +492,17 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onA
                 )}
             </div>
         </div>
-    );
+
+        {/* Email Popup */}
+        <AnimatePresence>
+            {showEmailPopup && (
+                <EmailPopup
+                    shipment={data}
+                    onClose={() => setShowEmailPopup(false)}
+                />
+            )}
+        </AnimatePresence>
+    </>);
 };
 
 const Section = ({ label, icon, children }) => (
