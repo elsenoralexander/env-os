@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { X, Camera, Save, ClipboardList, Info, Plus, ChevronDown, Building2 } from 'lucide-react';
+import { X, Camera, Save, ClipboardList, Info, Plus, ChevronDown, Building2, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { uploadToCloudinary } from '../cloudinary';
 
 const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments }) => {
     const [formData, setFormData] = useState({
@@ -25,6 +26,7 @@ const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments }
     const [showProviders, setShowProviders] = useState(false);
     const [showReferences, setShowReferences] = useState(false);
     const [refAutoFilled, setRefAutoFilled] = useState(false);
+    const [uploadingImage, setUploadingImage] = useState(false);
 
     const uniqueProviders = useMemo(() => {
         const providers = (allShipments || []).map(s => s.provider);
@@ -78,7 +80,31 @@ const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments }
         setShowReferences(true);
     };
 
-    // ... handleImageChange and handleAddService ...
+    // Handle image upload to Cloudinary
+    const handleImageChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Show local preview immediately
+        const reader = new FileReader();
+        reader.onload = (event) => setPreview(event.target.result);
+        reader.readAsDataURL(file);
+
+        // Upload to Cloudinary
+        setUploadingImage(true);
+        try {
+            const imageUrl = await uploadToCloudinary(file);
+            setFormData({ ...formData, image: imageUrl });
+            console.log('✅ Image uploaded:', imageUrl);
+        } catch (error) {
+            console.error('❌ Upload failed:', error);
+            alert('Error al subir la imagen. Inténtalo de nuevo.');
+            setPreview(null);
+        } finally {
+            setUploadingImage(false);
+        }
+    };
+
 
     const handleSubmit = (e) => {
         e.preventDefault();

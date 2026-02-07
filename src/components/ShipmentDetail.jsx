@@ -3,10 +3,11 @@ import {
     X, Calendar, Building2, Save, Trash2, Camera,
     CheckCircle2, Clock, AlertCircle, Info, Plus,
     Truck, Package, ClipboardList, Settings2, Pencil,
-    ChevronDown, Search
+    ChevronDown, Search, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
+import { uploadToCloudinary } from '../cloudinary';
 
 const STATUS_WORKFLOW = [
     'REPARANDO EN ELECTROMEDICINA',
@@ -89,15 +90,22 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onA
         setIsEditing(false);
     };
 
-    const handleImageUpload = (e) => {
+    const [uploadingImage, setUploadingImage] = useState(false);
+
+    const handleImageUpload = async (e) => {
         const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                // Simple resizing logic using canvas could go here
-                setData({ ...data, image: event.target.result });
-            };
-            reader.readAsDataURL(file);
+        if (!file) return;
+
+        setUploadingImage(true);
+        try {
+            const imageUrl = await uploadToCloudinary(file);
+            setData({ ...data, image: imageUrl });
+            console.log('✅ Image uploaded to Cloudinary:', imageUrl);
+        } catch (error) {
+            console.error('❌ Upload failed:', error);
+            alert('Error al subir la imagen. Inténtalo de nuevo.');
+        } finally {
+            setUploadingImage(false);
         }
     };
 
