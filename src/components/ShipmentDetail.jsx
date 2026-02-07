@@ -132,10 +132,12 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onClose, onA
                             <p className="mt-4 font-bold text-xs tracking-widest uppercase absolute bottom-8">Sin Evidencia</p>
                         </div>
                     )}
-                    <label className="absolute inset-0 bg-quiron-secondary/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 flex items-center justify-center text-white font-bold transition-opacity cursor-pointer">
-                        <Camera className="mr-2" /> Cambiar Imagen
-                        <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
-                    </label>
+                    {isEditing && (
+                        <label className="absolute inset-0 bg-quiron-secondary/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 flex items-center justify-center text-white font-bold transition-opacity cursor-pointer">
+                            <Camera className="mr-2" /> Cambiar Imagen
+                            <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                        </label>
+                    )}
                 </div>
 
                 <div className="space-y-6 mt-auto">
