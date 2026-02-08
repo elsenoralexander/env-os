@@ -306,7 +306,7 @@ const Modal = ({ children, onClose }) => (
             initial={{ scale: 0.9, opacity: 0, y: 40 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 40 }}
-            className="relative w-full max-w-6xl max-h-full overflow-hidden"
+            className="relative w-full max-w-6xl max-h-full overflow-auto"
         >
             {children}
         </motion.div>

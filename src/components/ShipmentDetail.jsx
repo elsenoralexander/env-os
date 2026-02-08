@@ -142,7 +142,7 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onDelete, on
     };
 
     return (<>
-        <div className="bg-white rounded-5xl overflow-hidden shadow-2xl flex flex-col lg:flex-row h-[90vh] lg:h-auto max-h-[90vh]">
+        <div className="bg-white rounded-5xl overflow-hidden shadow-2xl flex flex-col lg:flex-row h-full lg:h-auto max-h-[95vh] lg:max-h-[90vh] overflow-y-auto lg:overflow-visible">
             {/* Left side: Photo & Status Overview */}
             <div className="lg:w-1/3 bg-gray-50 p-8 border-r border-gray-100 flex flex-col">
                 <div
@@ -245,7 +245,7 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onDelete, on
             </div>
 
             {/* Right side: Details & Forms */}
-            <div className="flex-1 p-10 overflow-y-auto">
+            <div className="flex-1 p-10 lg:overflow-y-auto">
                 <div className="flex justify-between items-start mb-10">
                     <div>
                         <div className="flex items-center gap-3 mb-2">
