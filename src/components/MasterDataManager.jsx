@@ -31,14 +31,38 @@ const MasterDataManager = ({
     const [showNewProviderForm, setShowNewProviderForm] = useState(false);
     const [newEmail, setNewEmail] = useState('');
 
-    // Filter references by search
+    // Filter references by search - combining master references AND references from shipments
     const filteredReferences = useMemo(() => {
-        return (masterReferences || []).filter(r =>
-            r.ref?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            r.equipmentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            r.provider?.toLowerCase().includes(searchTerm.toLowerCase())
-        ).sort((a, b) => (a.ref || '').localeCompare(b.ref || '', 'es'));
-    }, [masterReferences, searchTerm]);
+        // Start with master references (they have full data)
+        const refMap = new Map();
+        (masterReferences || []).forEach(r => {
+            if (r.ref) refMap.set(r.ref.toUpperCase(), { ...r, isMaster: true });
+        });
+
+        // Add references from shipments that aren't in master
+        (shipments || []).forEach(s => {
+            if (s.ref && s.ref.trim() && !refMap.has(s.ref.toUpperCase())) {
+                refMap.set(s.ref.toUpperCase(), {
+                    id: `ship_${s.ref.toUpperCase().replace(/\s+/g, '_')}`,
+                    ref: s.ref.toUpperCase(),
+                    equipmentName: s.model || '',
+                    service: s.service || '',
+                    provider: s.provider || '',
+                    isMaster: false
+                });
+            }
+        });
+
+        // Convert to array and filter by search
+        return Array.from(refMap.values())
+            .filter(r =>
+                !searchTerm ||
+                r.ref?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                r.equipmentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                r.provider?.toLowerCase().includes(searchTerm.toLowerCase())
+            )
+            .sort((a, b) => (a.ref || '').localeCompare(b.ref || '', 'es'));
+    }, [masterReferences, shipments, searchTerm]);
 
     // Filter providers by search - combining master providers AND providers from shipments
     const filteredProviders = useMemo(() => {
@@ -252,6 +276,14 @@ const MasterDataManager = ({
                                         onSave={() => handleSaveReference(editingRef)}
                                         onCancel={() => setEditingRef(null)}
                                         onDelete={() => handleDeleteReference(ref.id)}
+                                        onPromoteToMaster={async (refData) => {
+                                            await onAddReference({
+                                                ref: refData.ref,
+                                                equipmentName: refData.equipmentName || '',
+                                                service: refData.service || '',
+                                                provider: refData.provider || ''
+                                            });
+                                        }}
                                     />
                                 ))
                             )}
@@ -400,8 +432,8 @@ const ReferenceForm = ({ data, setData, services, providers, onSave, onCancel, i
     </div>
 );
 
-const ReferenceItem = ({ reference, isEditing, editingData, setEditingData, services, providers, onEdit, onSave, onCancel, onDelete }) => (
-    <div className={`p-4 rounded-2xl border transition-all ${isEditing ? 'bg-quiron-primary/5 border-quiron-primary/20' : 'bg-gray-50 border-transparent hover:border-gray-200'}`}>
+const ReferenceItem = ({ reference, isEditing, editingData, setEditingData, services, providers, onEdit, onSave, onCancel, onDelete, onPromoteToMaster }) => (
+    <div className={`p-4 rounded-2xl border transition-all ${isEditing ? 'bg-quiron-primary/5 border-quiron-primary/20' : reference.isMaster === false ? 'bg-teal-50/50 border-teal-200/50 hover:border-teal-300' : 'bg-gray-50 border-transparent hover:border-gray-200'}`}>
         {isEditing ? (
             <ReferenceForm
                 data={editingData}
@@ -414,29 +446,47 @@ const ReferenceItem = ({ reference, isEditing, editingData, setEditingData, serv
         ) : (
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-quiron-secondary/10 flex items-center justify-center">
-                        <Package size={18} className="text-quiron-secondary" />
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${reference.isMaster === false ? 'bg-teal-100' : 'bg-quiron-secondary/10'}`}>
+                        <Package size={18} className={reference.isMaster === false ? 'text-teal-600' : 'text-quiron-secondary'} />
                     </div>
                     <div>
-                        <p className="font-black text-quiron-secondary">{reference.ref}</p>
+                        <div className="flex items-center gap-2">
+                            <p className="font-black text-quiron-secondary">{reference.ref}</p>
+                            {reference.isMaster === false && (
+                                <span className="text-[9px] bg-teal-200 text-teal-700 px-2 py-0.5 rounded-full font-bold">
+                                    De envíos
+                                </span>
+                            )}
+                        </div>
                         <p className="text-xs text-gray-400">
                             {[reference.equipmentName, reference.service, reference.provider].filter(Boolean).join(' • ')}
                         </p>
                     </div>
                 </div>
                 <div className="flex gap-1">
-                    <button
-                        onClick={onEdit}
-                        className="p-2 text-gray-400 hover:text-quiron-primary hover:bg-quiron-primary/10 rounded-lg transition-all"
-                    >
-                        <Edit2 size={16} />
-                    </button>
-                    <button
-                        onClick={onDelete}
-                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                    >
-                        <Trash2 size={16} />
-                    </button>
+                    {reference.isMaster === false ? (
+                        <button
+                            onClick={() => onPromoteToMaster(reference)}
+                            className="px-3 py-1.5 text-[10px] font-bold text-white bg-gradient-to-r from-teal-500 to-quiron-primary rounded-lg hover:shadow-lg transition-all"
+                        >
+                            Guardar en Maestros
+                        </button>
+                    ) : (
+                        <>
+                            <button
+                                onClick={onEdit}
+                                className="p-2 text-gray-400 hover:text-quiron-primary hover:bg-quiron-primary/10 rounded-lg transition-all"
+                            >
+                                <Edit2 size={16} />
+                            </button>
+                            <button
+                                onClick={onDelete}
+                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
         )}
