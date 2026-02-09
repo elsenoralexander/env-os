@@ -95,20 +95,34 @@ const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments }
         const file = e.target.files[0];
         if (!file) return;
 
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            alert('Por favor, selecciona un archivo de imagen válido.');
+            return;
+        }
+
+        // Validate file size (max 10MB before compression)
+        if (file.size > 10 * 1024 * 1024) {
+            alert('La imagen es demasiado grande (máx 10MB). Por favor, selecciona una imagen más pequeña.');
+            return;
+        }
+
         // Show local preview immediately
         const reader = new FileReader();
         reader.onload = (event) => setPreview(event.target.result);
         reader.readAsDataURL(file);
 
-        // Upload to Cloudinary
+        // Upload to Cloudinary with compression
         setUploadingImage(true);
         try {
+            console.log(`📸 Uploading image: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
             const imageUrl = await uploadToCloudinary(file);
             setFormData({ ...formData, image: imageUrl });
-            console.log('✅ Image uploaded:', imageUrl);
+            console.log('✅ Image uploaded successfully:', imageUrl);
         } catch (error) {
             console.error('❌ Upload failed:', error);
-            alert('Error al subir la imagen. Inténtalo de nuevo.');
+            const errorMsg = error.message || 'Error desconocido';
+            alert(`Error al subir la imagen: ${errorMsg}\n\nSugerencias:\n- Verifica tu conexión a internet\n- Intenta con una imagen más pequeña`);
             setPreview(null);
         } finally {
             setUploadingImage(false);
