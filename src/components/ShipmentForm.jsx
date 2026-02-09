@@ -32,11 +32,18 @@ const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments, 
         // Combine providers from shipments and master data
         const providersFromShipments = (allShipments || []).map(s => s.provider);
         const providersFromMaster = (masterProviders || []).map(p => p.name);
-        const allProviderNames = [...new Set([...providersFromShipments, ...providersFromMaster])];
-
-        return allProviderNames
-            .filter(p => p && p.toLowerCase().includes(formData.provider.toLowerCase()))
+        const allProviderNames = [...new Set([...providersFromShipments, ...providersFromMaster])]
+            .filter(Boolean)
             .sort((a, b) => a.localeCompare(b, 'es'));
+
+        // If no search term, return all providers
+        if (!formData.provider.trim()) {
+            return allProviderNames;
+        }
+
+        // Filter by search term
+        return allProviderNames
+            .filter(p => p.toLowerCase().includes(formData.provider.toLowerCase()));
     }, [allShipments, masterProviders, formData.provider]);
 
     const uniqueReferences = useMemo(() => {
@@ -74,8 +81,8 @@ const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments, 
             });
 
         return Array.from(refMap.values())
-            .filter(r => r.ref.includes(formData.ref.toUpperCase()))
-            .sort((a, b) => a.ref.localeCompare(b.ref, 'es'));
+            .sort((a, b) => a.ref.localeCompare(b.ref, 'es'))
+            .filter(r => !formData.ref.trim() || r.ref.includes(formData.ref.toUpperCase()));
     }, [allShipments, masterReferences, formData.ref]);
 
     // Get unique contacts (from shipments and master providers)
@@ -91,11 +98,17 @@ const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments, 
             .flatMap(p => p.emails || []);
 
         // Combine and deduplicate
-        const allContacts = [...new Set([...contactsFromShipments, ...emailsFromProviders])];
+        const allContacts = [...new Set([...contactsFromShipments, ...emailsFromProviders])]
+            .filter(Boolean)
+            .sort((a, b) => a.localeCompare(b, 'es'));
+
+        // If no search term, return all contacts
+        if (!formData.provider_contact.trim()) {
+            return allContacts;
+        }
 
         return allContacts
-            .filter(c => c && c.toLowerCase().includes(formData.provider_contact.toLowerCase()))
-            .sort((a, b) => a.localeCompare(b, 'es'));
+            .filter(c => c.toLowerCase().includes(formData.provider_contact.toLowerCase()));
     }, [allShipments, masterProviders, formData.provider_contact]);
 
     // Handle reference selection from dropdown
@@ -249,10 +262,11 @@ const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments, 
                         <div className="relative">
                             <input
                                 className="input-premium bg-teal-50 border-teal-100"
-                                placeholder="Buscar o crear referencia..."
+                                placeholder="Haz clic para ver todas o escribe para buscar..."
                                 value={formData.ref}
                                 onChange={handleRefChange}
                                 onFocus={() => setShowReferences(true)}
+                                onBlur={() => setTimeout(() => setShowReferences(false), 200)}
                             />
                             {refAutoFilled && (
                                 <motion.div
@@ -272,11 +286,14 @@ const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments, 
                                         exit={{ opacity: 0, y: 10 }}
                                         className="absolute z-50 w-full mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden max-h-60 overflow-y-auto"
                                     >
-                                        {uniqueReferences.slice(0, 8).map(refData => (
+                                        {uniqueReferences.slice(0, 15).map(refData => (
                                             <button
                                                 key={refData.ref}
                                                 type="button"
-                                                onClick={() => handleRefSelect(refData)}
+                                                onMouseDown={(e) => {
+                                                    e.preventDefault();
+                                                    handleRefSelect(refData);
+                                                }}
                                                 className="w-full text-left px-5 py-3 hover:bg-teal-50 transition-colors border-b border-gray-50 last:border-0"
                                             >
                                                 <div className="flex justify-between items-start">
@@ -325,9 +342,10 @@ const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments, 
                             <input
                                 required
                                 className="input-premium"
-                                placeholder="Escribe para buscar..."
+                                placeholder="Escribe para buscar o haz clic para ver todos..."
                                 value={formData.provider}
                                 onFocus={() => setShowProviders(true)}
+                                onBlur={() => setTimeout(() => setShowProviders(false), 200)}
                                 onChange={(e) => {
                                     setFormData({ ...formData, provider: e.target.value });
                                     setShowProviders(true);
@@ -340,22 +358,27 @@ const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments, 
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: 10 }}
-                                    className="absolute z-50 w-full mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
+                                    className="absolute z-50 w-full mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden max-h-60 overflow-y-auto"
                                 >
-                                    {uniqueProviders.slice(0, 5).map(p => (
+                                    {uniqueProviders.slice(0, 15).map(p => (
                                         <button
                                             key={p}
                                             type="button"
-                                            onClick={() => {
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
                                                 // Find most recent shipment with this provider to get contact
                                                 const matchingShipment = [...allShipments]
                                                     .filter(s => s.provider === p && s.provider_contact)
                                                     .sort((a, b) => new Date(b.shipment_date) - new Date(a.shipment_date))[0];
 
+                                                // Also check master providers for emails
+                                                const masterProv = (masterProviders || []).find(mp => mp.name === p);
+                                                const masterEmail = masterProv?.emails?.[0] || '';
+
                                                 setFormData({
                                                     ...formData,
                                                     provider: p,
-                                                    provider_contact: matchingShipment?.provider_contact || ''
+                                                    provider_contact: matchingShipment?.provider_contact || masterEmail
                                                 });
                                                 setShowProviders(false);
                                             }}

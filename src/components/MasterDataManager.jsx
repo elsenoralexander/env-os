@@ -7,6 +7,7 @@ import {
 
 const MasterDataManager = ({
     services,
+    shipments,
     masterReferences,
     masterProviders,
     onAddReference,
@@ -39,13 +40,35 @@ const MasterDataManager = ({
         ).sort((a, b) => (a.ref || '').localeCompare(b.ref || '', 'es'));
     }, [masterReferences, searchTerm]);
 
-    // Filter providers by search
+    // Filter providers by search - combining master providers AND providers from shipments
     const filteredProviders = useMemo(() => {
-        return (masterProviders || []).filter(p =>
-            p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.emails?.some(e => e.toLowerCase().includes(searchTerm.toLowerCase()))
-        ).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es'));
-    }, [masterProviders, searchTerm]);
+        // Start with master providers (they have full data with emails)
+        const masterProvMap = new Map();
+        (masterProviders || []).forEach(p => {
+            if (p.name) masterProvMap.set(p.name.toLowerCase(), { ...p, isMaster: true });
+        });
+
+        // Add providers from shipments that aren't in master
+        (shipments || []).forEach(s => {
+            if (s.provider && !masterProvMap.has(s.provider.toLowerCase())) {
+                masterProvMap.set(s.provider.toLowerCase(), {
+                    id: `ship_${s.provider.toLowerCase().replace(/\s+/g, '_')}`,
+                    name: s.provider,
+                    emails: s.provider_contact ? [s.provider_contact] : [],
+                    isMaster: false
+                });
+            }
+        });
+
+        // Convert to array and filter by search
+        return Array.from(masterProvMap.values())
+            .filter(p =>
+                !searchTerm ||
+                p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                p.emails?.some(e => e.toLowerCase().includes(searchTerm.toLowerCase()))
+            )
+            .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es'));
+    }, [masterProviders, shipments, searchTerm]);
 
     // Get unique providers from references or providers list
     const uniqueProviders = useMemo(() => {
@@ -300,6 +323,9 @@ const MasterDataManager = ({
                                         onSave={() => handleSaveProvider(editingProvider)}
                                         onCancel={() => setEditingProvider(null)}
                                         onDelete={() => handleDeleteProvider(prov.id)}
+                                        onPromoteToMaster={async (provData) => {
+                                            await onAddProvider({ name: provData.name, emails: provData.emails || [] });
+                                        }}
                                     />
                                 ))
                             )}
@@ -486,8 +512,8 @@ const ProviderForm = ({ data, setData, newEmail, setNewEmail, onAddEmail, onRemo
     </div>
 );
 
-const ProviderItem = ({ provider, isEditing, editingData, setEditingData, newEmail, setNewEmail, onAddEmail, onRemoveEmail, onEdit, onSave, onCancel, onDelete }) => (
-    <div className={`p-4 rounded-2xl border transition-all ${isEditing ? 'bg-quiron-primary/5 border-quiron-primary/20' : 'bg-gray-50 border-transparent hover:border-gray-200'}`}>
+const ProviderItem = ({ provider, isEditing, editingData, setEditingData, newEmail, setNewEmail, onAddEmail, onRemoveEmail, onEdit, onSave, onCancel, onDelete, onPromoteToMaster }) => (
+    <div className={`p-4 rounded-2xl border transition-all ${isEditing ? 'bg-quiron-primary/5 border-quiron-primary/20' : provider.isMaster === false ? 'bg-amber-50/50 border-amber-200/50 hover:border-amber-300' : 'bg-gray-50 border-transparent hover:border-gray-200'}`}>
         {isEditing ? (
             <ProviderForm
                 data={editingData}
@@ -503,24 +529,42 @@ const ProviderItem = ({ provider, isEditing, editingData, setEditingData, newEma
             <div className="space-y-2">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-quiron-accent/10 flex items-center justify-center">
-                            <Building2 size={18} className="text-quiron-accent" />
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${provider.isMaster === false ? 'bg-amber-100' : 'bg-quiron-accent/10'}`}>
+                            <Building2 size={18} className={provider.isMaster === false ? 'text-amber-600' : 'text-quiron-accent'} />
                         </div>
-                        <p className="font-black text-quiron-secondary">{provider.name}</p>
+                        <div>
+                            <p className="font-black text-quiron-secondary">{provider.name}</p>
+                            {provider.isMaster === false && (
+                                <span className="text-[9px] bg-amber-200 text-amber-700 px-2 py-0.5 rounded-full font-bold">
+                                    De envíos - Sin guardar
+                                </span>
+                            )}
+                        </div>
                     </div>
                     <div className="flex gap-1">
-                        <button
-                            onClick={onEdit}
-                            className="p-2 text-gray-400 hover:text-quiron-primary hover:bg-quiron-primary/10 rounded-lg transition-all"
-                        >
-                            <Edit2 size={16} />
-                        </button>
-                        <button
-                            onClick={onDelete}
-                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                        >
-                            <Trash2 size={16} />
-                        </button>
+                        {provider.isMaster === false ? (
+                            <button
+                                onClick={() => onPromoteToMaster(provider)}
+                                className="px-3 py-1.5 text-[10px] font-bold text-white bg-gradient-to-r from-quiron-primary to-quiron-accent rounded-lg hover:shadow-lg transition-all"
+                            >
+                                Guardar en Maestros
+                            </button>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={onEdit}
+                                    className="p-2 text-gray-400 hover:text-quiron-primary hover:bg-quiron-primary/10 rounded-lg transition-all"
+                                >
+                                    <Edit2 size={16} />
+                                </button>
+                                <button
+                                    onClick={onDelete}
+                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
                 {(provider.emails || []).length > 0 && (

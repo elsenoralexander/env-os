@@ -207,6 +207,7 @@ const AnalyticsDashboard = ({
                 {/* Master Data Manager - Replaces Flow Chart */}
                 <MasterDataManager
                     services={services}
+                    shipments={shipments}
                     masterReferences={masterReferences}
                     masterProviders={masterProviders}
                     onAddReference={onAddReference}
