@@ -18,7 +18,7 @@ const STATUS_WORKFLOW = [
     'RECIBIDO'
 ];
 
-const ShipmentDetail = ({ shipment, services, allShipments, onSave, onDelete, onClose, onAddService }) => {
+const ShipmentDetail = ({ shipment, services, allShipments, masterReferences, masterProviders, onSave, onDelete, onClose, onAddService }) => {
     // Initialize data with provider_contacts array (handle both old string and new array formats)
     const initialContacts = shipment.provider_contacts ||
         (shipment.provider_contact ? [shipment.provider_contact] : []);
@@ -40,14 +40,39 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onDelete, on
     const [contactSearch, setContactSearch] = useState('');
 
     const uniqueProviders = useMemo(() => {
-        const providers = allShipments.map(s => s.provider);
-        return [...new Set(providers)]
-            .filter(p => p.toLowerCase().includes(providerSearch.toLowerCase()))
+        // Combine providers from shipments and master data
+        const providersFromShipments = (allShipments || []).map(s => s.provider);
+        const providersFromMaster = (masterProviders || []).map(p => p.name);
+        const allProviderNames = [...new Set([...providersFromShipments, ...providersFromMaster])]
+            .filter(Boolean)
             .sort((a, b) => a.localeCompare(b, 'es'));
-    }, [allShipments, providerSearch]);
+
+        // If no search term, return all providers
+        if (!providerSearch.trim()) {
+            return allProviderNames;
+        }
+
+        return allProviderNames
+            .filter(p => p.toLowerCase().includes(providerSearch.toLowerCase()));
+    }, [allShipments, masterProviders, providerSearch]);
 
     const uniqueReferences = useMemo(() => {
         const refMap = new Map();
+
+        // First, add references from master data (priority)
+        (masterReferences || []).forEach(r => {
+            if (r.ref && r.ref.trim()) {
+                refMap.set(r.ref.toUpperCase(), {
+                    ref: r.ref.toUpperCase(),
+                    model: r.equipmentName || r.model || '',
+                    service: r.service || '',
+                    provider: r.provider || '',
+                    provider_contact: ''
+                });
+            }
+        });
+
+        // Then add from shipments (won't overwrite master data)
         (allShipments || [])
             .filter(s => s.ref && s.ref.trim())
             .sort((a, b) => new Date(b.shipment_date) - new Date(a.shipment_date))
@@ -62,16 +87,19 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onDelete, on
                     });
                 }
             });
+
         const searchTerm = (refSearch || data.ref || '').toUpperCase();
         return Array.from(refMap.values())
-            .filter(r => r.ref.includes(searchTerm))
-            .sort((a, b) => a.ref.localeCompare(b.ref, 'es'));
-    }, [allShipments, refSearch, data.ref]);
+            .sort((a, b) => a.ref.localeCompare(b.ref, 'es'))
+            .filter(r => !searchTerm || r.ref.includes(searchTerm));
+    }, [allShipments, masterReferences, refSearch, data.ref]);
 
-    // Get unique contacts from all shipments (handles both string and array formats)
+    // Get unique contacts from all shipments and master providers
     const [showContacts, setShowContacts] = useState(false);
     const uniqueContacts = useMemo(() => {
         const contactsSet = new Set();
+
+        // Contacts from shipments
         (allShipments || []).forEach(s => {
             if (s.provider_contacts && Array.isArray(s.provider_contacts)) {
                 s.provider_contacts.forEach(c => c && c.trim() && contactsSet.add(c.trim()));
@@ -79,6 +107,12 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onDelete, on
                 contactsSet.add(s.provider_contact.trim());
             }
         });
+
+        // Emails from master providers
+        (masterProviders || []).forEach(p => {
+            (p.emails || []).forEach(e => e && e.trim() && contactsSet.add(e.trim()));
+        });
+
         // Get current contacts to exclude from suggestions
         const currentContacts = Array.isArray(data.provider_contacts) ? data.provider_contacts :
             (data.provider_contact ? [data.provider_contact] : []);

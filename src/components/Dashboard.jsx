@@ -277,6 +277,8 @@ const Dashboard = ({
                             shipment={selectedShipment}
                             allShipments={allShipments}
                             services={services}
+                            masterReferences={masterReferences}
+                            masterProviders={masterProviders}
                             onSave={(data) => {
                                 onEditShipment(data);
                                 setSelectedShipment(null);
