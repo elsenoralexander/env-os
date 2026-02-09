@@ -5,8 +5,21 @@ import {
     Users, ClipboardCheck, Filter, Calendar,
     ArrowRight, ChevronDown, Package, Activity
 } from 'lucide-react';
+import MasterDataManager from './MasterDataManager';
 
-const AnalyticsDashboard = ({ shipments, onClose }) => {
+const AnalyticsDashboard = ({
+    shipments,
+    onClose,
+    services,
+    masterReferences,
+    masterProviders,
+    onAddReference,
+    onEditReference,
+    onDeleteReference,
+    onAddProvider,
+    onEditProvider,
+    onDeleteProvider
+}) => {
     const [timeRange, setTimeRange] = useState('ALL'); // '30D', '6M', 'ALL'
     const [selectedProvider, setSelectedProvider] = useState('TODO');
 
@@ -191,48 +204,18 @@ const AnalyticsDashboard = ({ shipments, onClose }) => {
 
             {/* Main Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                {/* Monthly Flow Bar Chart */}
-                <div className="lg:col-span-2 premium-card p-10 bg-white/60 backdrop-blur-xl border border-white relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <BarChart3 size={120} />
-                    </div>
-                    <div className="flex justify-between items-center mb-12 relative z-10">
-                        <h3 className="text-xl font-black text-quiron-secondary flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-quiron-primary/10 flex items-center justify-center text-quiron-primary">
-                                <BarChart3 size={20} />
-                            </div>
-                            Flujo de Envíos (Mensual)
-                        </h3>
-                        <span className="text-[10px] font-black text-quiron-primary bg-quiron-primary/5 px-4 py-1 rounded-full uppercase tracking-tighter">
-                            Envíos Totales
-                        </span>
-                    </div>
-
-                    <div className="h-72 flex items-end justify-between gap-6 px-4">
-                        {stats.flow.map((d, i) => {
-                            const maxCount = Math.max(...stats.flow.map(f => f.count), 1);
-                            const heightPercent = d.count > 0 ? Math.max(5, (d.count / maxCount) * 100) : 0;
-
-                            return (
-                                <div key={i} className="flex-1 flex flex-col items-center group/bar">
-                                    <div className="w-full relative flex flex-col items-center justify-end h-full">
-                                        <motion.div
-                                            initial={{ height: 0 }}
-                                            animate={{ height: `${heightPercent}%` }}
-                                            transition={{ delay: i * 0.1, duration: 1, ease: "circOut" }}
-                                            className="w-full max-w-[40px] medical-gradient rounded-xl relative group-hover/bar:brightness-125 transition-all shadow-xl"
-                                        >
-                                            <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover/bar:opacity-100 transition-opacity bg-quiron-secondary text-white text-[10px] font-black px-2 py-1 rounded-lg whitespace-nowrap">
-                                                {d.count} Env.
-                                            </div>
-                                        </motion.div>
-                                    </div>
-                                    <p className="text-[10px] font-black text-quiron-secondary/40 uppercase tracking-widest mt-6 group-hover/bar:text-quiron-primary transition-colors">{d.name}</p>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
+                {/* Master Data Manager - Replaces Flow Chart */}
+                <MasterDataManager
+                    services={services}
+                    masterReferences={masterReferences}
+                    masterProviders={masterProviders}
+                    onAddReference={onAddReference}
+                    onEditReference={onEditReference}
+                    onDeleteReference={onDeleteReference}
+                    onAddProvider={onAddProvider}
+                    onEditProvider={onEditProvider}
+                    onDeleteProvider={onDeleteProvider}
+                />
 
                 {/* Top Slowest Providers Ranking */}
                 <div className="premium-card p-10 medical-gradient text-white border-transparent shadow-2xl relative overflow-hidden group">

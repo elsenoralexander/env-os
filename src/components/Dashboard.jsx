@@ -20,7 +20,16 @@ const Dashboard = ({
     onAddShipment,
     onEditShipment,
     onDeleteShipment,
-    onAddService
+    onAddService,
+    // Master data props
+    masterReferences,
+    masterProviders,
+    onAddReference,
+    onEditReference,
+    onDeleteReference,
+    onAddProvider,
+    onEditProvider,
+    onDeleteProvider
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedService, setSelectedService] = useState('TODO');
@@ -104,7 +113,19 @@ const Dashboard = ({
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
                     >
-                        <AnalyticsDashboard shipments={allShipments} onClose={() => onViewChange('main')} />
+                        <AnalyticsDashboard
+                            shipments={allShipments}
+                            onClose={() => onViewChange('main')}
+                            services={services}
+                            masterReferences={masterReferences}
+                            masterProviders={masterProviders}
+                            onAddReference={onAddReference}
+                            onEditReference={onEditReference}
+                            onDeleteReference={onDeleteReference}
+                            onAddProvider={onAddProvider}
+                            onEditProvider={onEditProvider}
+                            onDeleteProvider={onDeleteProvider}
+                        />
                     </motion.div>
                 ) : (
                     <motion.div

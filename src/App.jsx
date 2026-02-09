@@ -17,6 +17,9 @@ function App() {
     const [currentView, setCurrentView] = useState('main');
     const [connectionStatus, setConnectionStatus] = useState('connecting'); // 'connecting' | 'connected' | 'error'
     const [notification, setNotification] = useState(null); // { message, type: 'success' | 'error' }
+    // Master data: References and Providers
+    const [masterReferences, setMasterReferences] = useState([]);
+    const [masterProviders, setMasterProviders] = useState([]);
 
     // Helper to show notifications
     const showNotification = (message, type = 'success') => {
@@ -74,9 +77,33 @@ function App() {
         // Initialize services config only
         initializeServicesConfig();
 
+        // Subscribe to master references
+        const unsubscribeReferences = onSnapshot(
+            collection(db, 'references'),
+            (snapshot) => {
+                const refsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                setMasterReferences(refsData);
+                console.log('📚 References synced:', refsData.length);
+            },
+            (error) => console.error('❌ Error fetching references:', error)
+        );
+
+        // Subscribe to master providers
+        const unsubscribeProviders = onSnapshot(
+            collection(db, 'providers'),
+            (snapshot) => {
+                const providersData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                setMasterProviders(providersData);
+                console.log('🏢 Providers synced:', providersData.length);
+            },
+            (error) => console.error('❌ Error fetching providers:', error)
+        );
+
         return () => {
             unsubscribeShipments();
             unsubscribeServices();
+            unsubscribeReferences();
+            unsubscribeProviders();
         };
     }, []);
 
@@ -137,6 +164,82 @@ function App() {
         }
     };
 
+    // ==================== MASTER DATA: REFERENCES ====================
+    const addReference = async (reference) => {
+        console.log('📚 Adding reference:', reference);
+        try {
+            const id = reference.id || `ref_${Date.now()}`;
+            await setDoc(doc(db, 'references', id), { ...reference, id });
+            showNotification('Referencia guardada: ' + reference.ref);
+        } catch (error) {
+            console.error('❌ Error adding reference:', error);
+            showNotification('Error: ' + error.message, 'error');
+            throw error;
+        }
+    };
+
+    const editReference = async (reference) => {
+        console.log('📚 Updating reference:', reference);
+        try {
+            await updateDoc(doc(db, 'references', reference.id), reference);
+            showNotification('Referencia actualizada');
+        } catch (error) {
+            console.error('❌ Error updating reference:', error);
+            showNotification('Error: ' + error.message, 'error');
+            throw error;
+        }
+    };
+
+    const deleteReference = async (id) => {
+        console.log('🗑️ Deleting reference:', id);
+        try {
+            await deleteDoc(doc(db, 'references', id));
+            showNotification('Referencia eliminada');
+        } catch (error) {
+            console.error('❌ Error deleting reference:', error);
+            showNotification('Error: ' + error.message, 'error');
+            throw error;
+        }
+    };
+
+    // ==================== MASTER DATA: PROVIDERS ====================
+    const addProvider = async (provider) => {
+        console.log('🏢 Adding provider:', provider);
+        try {
+            const id = provider.id || `prov_${Date.now()}`;
+            await setDoc(doc(db, 'providers', id), { ...provider, id });
+            showNotification('Proveedor guardado: ' + provider.name);
+        } catch (error) {
+            console.error('❌ Error adding provider:', error);
+            showNotification('Error: ' + error.message, 'error');
+            throw error;
+        }
+    };
+
+    const editProvider = async (provider) => {
+        console.log('🏢 Updating provider:', provider);
+        try {
+            await updateDoc(doc(db, 'providers', provider.id), provider);
+            showNotification('Proveedor actualizado');
+        } catch (error) {
+            console.error('❌ Error updating provider:', error);
+            showNotification('Error: ' + error.message, 'error');
+            throw error;
+        }
+    };
+
+    const deleteProvider = async (id) => {
+        console.log('🗑️ Deleting provider:', id);
+        try {
+            await deleteDoc(doc(db, 'providers', id));
+            showNotification('Proveedor eliminado');
+        } catch (error) {
+            console.error('❌ Error deleting provider:', error);
+            showNotification('Error: ' + error.message, 'error');
+            throw error;
+        }
+    };
+
     const getDaysOut = (s) => {
         if (!s.shipment_date) return 0;
         const start = new Date(s.shipment_date);
@@ -165,12 +268,12 @@ function App() {
         <div className="min-h-screen bg-quiron-bg selection:bg-quiron-primary/20">
             {/* Connection Status Indicator */}
             <div className={`fixed top-4 right-4 z-50 px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 shadow-lg transition-all ${connectionStatus === 'connected' ? 'bg-green-500 text-white' :
-                    connectionStatus === 'error' ? 'bg-red-500 text-white' :
-                        'bg-yellow-500 text-white'
+                connectionStatus === 'error' ? 'bg-red-500 text-white' :
+                    'bg-yellow-500 text-white'
                 }`}>
                 <span className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-white' :
-                        connectionStatus === 'error' ? 'bg-white animate-pulse' :
-                            'bg-white animate-pulse'
+                    connectionStatus === 'error' ? 'bg-white animate-pulse' :
+                        'bg-white animate-pulse'
                     }`}></span>
                 {connectionStatus === 'connected' ? '🟢 Firebase Conectado' :
                     connectionStatus === 'error' ? '🔴 Sin Conexión' :
@@ -197,6 +300,15 @@ function App() {
                 onEditShipment={editShipment}
                 onDeleteShipment={deleteShipment}
                 onAddService={addService}
+                // Master data props
+                masterReferences={masterReferences}
+                masterProviders={masterProviders}
+                onAddReference={addReference}
+                onEditReference={editReference}
+                onDeleteReference={deleteReference}
+                onAddProvider={addProvider}
+                onEditProvider={editProvider}
+                onDeleteProvider={deleteProvider}
             />
         </div>
     );

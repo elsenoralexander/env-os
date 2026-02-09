@@ -19,7 +19,14 @@ const STATUS_WORKFLOW = [
 ];
 
 const ShipmentDetail = ({ shipment, services, allShipments, onSave, onDelete, onClose, onAddService }) => {
-    const [data, setData] = useState({ ...shipment, status: shipment.status || STATUS_WORKFLOW[1] });
+    // Initialize data with provider_contacts array (handle both old string and new array formats)
+    const initialContacts = shipment.provider_contacts ||
+        (shipment.provider_contact ? [shipment.provider_contact] : []);
+    const [data, setData] = useState({
+        ...shipment,
+        status: shipment.status || STATUS_WORKFLOW[1],
+        provider_contacts: initialContacts
+    });
     const [isEditing, setIsEditing] = useState(false);
     const [providerSearch, setProviderSearch] = useState('');
     const [showProviders, setShowProviders] = useState(false);
@@ -30,6 +37,7 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onDelete, on
     const [showEmailPopup, setShowEmailPopup] = useState(false);
     const [showImageLightbox, setShowImageLightbox] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [contactSearch, setContactSearch] = useState('');
 
     const uniqueProviders = useMemo(() => {
         const providers = allShipments.map(s => s.provider);
@@ -60,26 +68,42 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onDelete, on
             .sort((a, b) => a.ref.localeCompare(b.ref, 'es'));
     }, [allShipments, refSearch, data.ref]);
 
-    // Get unique contacts
+    // Get unique contacts from all shipments (handles both string and array formats)
     const [showContacts, setShowContacts] = useState(false);
     const uniqueContacts = useMemo(() => {
-        const contacts = (allShipments || [])
-            .filter(s => s.provider_contact && s.provider_contact.trim())
-            .map(s => s.provider_contact);
-        return [...new Set(contacts)]
-            .filter(c => c.toLowerCase().includes((data.provider_contact || '').toLowerCase()))
+        const contactsSet = new Set();
+        (allShipments || []).forEach(s => {
+            if (s.provider_contacts && Array.isArray(s.provider_contacts)) {
+                s.provider_contacts.forEach(c => c && c.trim() && contactsSet.add(c.trim()));
+            } else if (s.provider_contact && s.provider_contact.trim()) {
+                contactsSet.add(s.provider_contact.trim());
+            }
+        });
+        // Get current contacts to exclude from suggestions
+        const currentContacts = Array.isArray(data.provider_contacts) ? data.provider_contacts :
+            (data.provider_contact ? [data.provider_contact] : []);
+        return Array.from(contactsSet)
+            .filter(c => !currentContacts.includes(c))
+            .filter(c => c.toLowerCase().includes(contactSearch.toLowerCase()))
             .sort((a, b) => a.localeCompare(b, 'es'));
-    }, [allShipments, data.provider_contact]);
+    }, [allShipments, contactSearch, data.provider_contacts, data.provider_contact]);
 
     // Handle reference selection
     const handleRefSelect = (refData) => {
+        // Merge contacts: keep new format (array) or convert from old format (string)
+        const existingContacts = Array.isArray(data.provider_contacts) ? data.provider_contacts :
+            (data.provider_contact ? [data.provider_contact] : []);
+        const refContacts = refData.provider_contacts || (refData.provider_contact ? [refData.provider_contact] : []);
+        const mergedContacts = [...new Set([...existingContacts, ...refContacts])];
+
         setData(prev => ({
             ...prev,
             ref: refData.ref,
             model: refData.model,
             service: refData.service,
             provider: refData.provider,
-            provider_contact: refData.provider_contact
+            provider_contacts: mergedContacts,
+            provider_contact: mergedContacts.join(', ') // Keep backward compatibility
         }));
         setShowReferences(false);
         setRefSearch('');
@@ -452,41 +476,138 @@ const ShipmentDetail = ({ shipment, services, allShipments, onSave, onDelete, on
                         </div>
 
                         <div className="bg-quiron-bg rounded-3xl p-5 border-2 border-transparent">
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Contacto Proveedor</p>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                                Contactos Proveedor {isEditing && <span className="text-quiron-primary">(múltiples permitidos)</span>}
+                            </p>
                             {isEditing ? (
-                                <div className="relative">
-                                    <input
-                                        className="w-full bg-white rounded-xl px-4 py-3 font-bold text-quiron-secondary outline-none border-2 border-gray-100 focus:border-quiron-primary transition-colors"
-                                        placeholder="Buscar o añadir contacto..."
-                                        value={data.provider_contact || ''}
-                                        onFocus={() => setShowContacts(true)}
-                                        onChange={(e) => {
-                                            setData({ ...data, provider_contact: e.target.value });
-                                            setShowContacts(true);
-                                        }}
-                                        onBlur={() => setTimeout(() => setShowContacts(false), 150)}
-                                    />
-                                    {showContacts && uniqueContacts.length > 0 && (
-                                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-2xl shadow-xl z-20 max-h-40 overflow-y-auto">
-                                            {uniqueContacts.slice(0, 6).map(contact => (
-                                                <button
-                                                    key={contact}
-                                                    type="button"
-                                                    className="w-full text-left px-4 py-3 hover:bg-quiron-primary/5 text-sm font-medium transition-colors border-b border-gray-100 last:border-0"
-                                                    onMouseDown={(e) => {
-                                                        e.preventDefault();
-                                                        setData({ ...data, provider_contact: contact });
-                                                        setShowContacts(false);
-                                                    }}
-                                                >
-                                                    {contact}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
+                                <div className="space-y-3">
+                                    {/* Current contacts as tags */}
+                                    {(() => {
+                                        const contacts = Array.isArray(data.provider_contacts) ? data.provider_contacts :
+                                            (data.provider_contact ? [data.provider_contact] : []);
+                                        return contacts.length > 0 && (
+                                            <div className="flex flex-wrap gap-2">
+                                                {contacts.map((contact, idx) => (
+                                                    <span key={idx} className="inline-flex items-center gap-1 px-3 py-1.5 bg-quiron-primary/10 text-quiron-primary text-sm font-bold rounded-full">
+                                                        {contact}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const newContacts = contacts.filter((_, i) => i !== idx);
+                                                                setData({
+                                                                    ...data,
+                                                                    provider_contacts: newContacts,
+                                                                    provider_contact: newContacts.join(', ')
+                                                                });
+                                                            }}
+                                                            className="ml-1 text-quiron-primary/60 hover:text-red-500 transition-colors"
+                                                        >
+                                                            <X size={14} />
+                                                        </button>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        );
+                                    })()}
+
+                                    {/* Input for adding new contacts */}
+                                    <div className="relative">
+                                        <input
+                                            className="w-full bg-white rounded-xl px-4 py-3 font-bold text-quiron-secondary outline-none border-2 border-gray-100 focus:border-quiron-primary transition-colors"
+                                            placeholder="Buscar o escribir email..."
+                                            value={contactSearch}
+                                            onFocus={() => setShowContacts(true)}
+                                            onChange={(e) => {
+                                                setContactSearch(e.target.value);
+                                                setShowContacts(true);
+                                            }}
+                                            onBlur={() => setTimeout(() => setShowContacts(false), 200)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' && contactSearch.trim()) {
+                                                    e.preventDefault();
+                                                    const contacts = Array.isArray(data.provider_contacts) ? data.provider_contacts :
+                                                        (data.provider_contact ? [data.provider_contact] : []);
+                                                    if (!contacts.includes(contactSearch.trim())) {
+                                                        const newContacts = [...contacts, contactSearch.trim()];
+                                                        setData({
+                                                            ...data,
+                                                            provider_contacts: newContacts,
+                                                            provider_contact: newContacts.join(', ')
+                                                        });
+                                                    }
+                                                    setContactSearch('');
+                                                    setShowContacts(false);
+                                                }
+                                            }}
+                                        />
+                                        <p className="text-[9px] text-gray-400 mt-1 ml-1">Pulsa Enter para añadir un nuevo contacto</p>
+
+                                        {/* Dropdown for existing contacts */}
+                                        {showContacts && (uniqueContacts.length > 0 || contactSearch.trim()) && (
+                                            <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-2xl shadow-xl z-20 max-h-48 overflow-y-auto">
+                                                {uniqueContacts.slice(0, 8).map(contact => (
+                                                    <button
+                                                        key={contact}
+                                                        type="button"
+                                                        className="w-full text-left px-4 py-3 hover:bg-quiron-primary/5 text-sm font-medium transition-colors border-b border-gray-100 last:border-0 flex items-center gap-2"
+                                                        onMouseDown={(e) => {
+                                                            e.preventDefault();
+                                                            const contacts = Array.isArray(data.provider_contacts) ? data.provider_contacts :
+                                                                (data.provider_contact ? [data.provider_contact] : []);
+                                                            const newContacts = [...contacts, contact];
+                                                            setData({
+                                                                ...data,
+                                                                provider_contacts: newContacts,
+                                                                provider_contact: newContacts.join(', ')
+                                                            });
+                                                            setContactSearch('');
+                                                            setShowContacts(false);
+                                                        }}
+                                                    >
+                                                        <Plus size={14} className="text-quiron-primary" />
+                                                        {contact}
+                                                    </button>
+                                                ))}
+                                                {contactSearch.trim() && !uniqueContacts.find(c => c.toLowerCase() === contactSearch.toLowerCase()) && (
+                                                    <button
+                                                        type="button"
+                                                        className="w-full text-left px-4 py-3 bg-quiron-primary/5 hover:bg-quiron-primary/10 text-sm font-bold text-quiron-primary transition-colors flex items-center gap-2"
+                                                        onMouseDown={(e) => {
+                                                            e.preventDefault();
+                                                            const contacts = Array.isArray(data.provider_contacts) ? data.provider_contacts :
+                                                                (data.provider_contact ? [data.provider_contact] : []);
+                                                            const newContacts = [...contacts, contactSearch.trim()];
+                                                            setData({
+                                                                ...data,
+                                                                provider_contacts: newContacts,
+                                                                provider_contact: newContacts.join(', ')
+                                                            });
+                                                            setContactSearch('');
+                                                            setShowContacts(false);
+                                                        }}
+                                                    >
+                                                        <Plus size={14} />
+                                                        Añadir: <span className="font-black">{contactSearch}</span>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             ) : (
-                                <p className="font-bold text-quiron-secondary">{data.provider_contact || 'Sin contacto'}</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {(() => {
+                                        const contacts = Array.isArray(data.provider_contacts) ? data.provider_contacts :
+                                            (data.provider_contact ? [data.provider_contact] : []);
+                                        return contacts.length > 0 ? contacts.map((contact, idx) => (
+                                            <span key={idx} className="inline-flex items-center px-3 py-1.5 bg-quiron-secondary/10 text-quiron-secondary text-sm font-bold rounded-full">
+                                                {contact}
+                                            </span>
+                                        )) : (
+                                            <p className="font-bold text-gray-400 italic">Sin contactos</p>
+                                        );
+                                    })()}
+                                </div>
                             )}
                         </div>
                         <div className="grid grid-cols-2 gap-4">
