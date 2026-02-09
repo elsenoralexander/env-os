@@ -259,6 +259,8 @@ const Dashboard = ({
                         <ShipmentForm
                             services={services}
                             allShipments={allShipments}
+                            masterReferences={masterReferences}
+                            masterProviders={masterProviders}
                             onSave={(data) => {
                                 onAddShipment(data);
                                 setShowForm(false);

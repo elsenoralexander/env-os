@@ -3,7 +3,7 @@ import { X, Camera, Save, ClipboardList, Info, Plus, ChevronDown, Building2, Loa
 import { motion, AnimatePresence } from 'framer-motion';
 import { uploadToCloudinary } from '../cloudinary';
 
-const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments }) => {
+const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments, masterReferences, masterProviders }) => {
     const [formData, setFormData] = useState({
         provider: '',
         provider_contact: '',
@@ -29,14 +29,34 @@ const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments }
     const [uploadingImage, setUploadingImage] = useState(false);
 
     const uniqueProviders = useMemo(() => {
-        const providers = (allShipments || []).map(s => s.provider);
-        return [...new Set(providers)]
+        // Combine providers from shipments and master data
+        const providersFromShipments = (allShipments || []).map(s => s.provider);
+        const providersFromMaster = (masterProviders || []).map(p => p.name);
+        const allProviderNames = [...new Set([...providersFromShipments, ...providersFromMaster])];
+
+        return allProviderNames
             .filter(p => p && p.toLowerCase().includes(formData.provider.toLowerCase()))
             .sort((a, b) => a.localeCompare(b, 'es'));
-    }, [allShipments, formData.provider]);
+    }, [allShipments, masterProviders, formData.provider]);
 
     const uniqueReferences = useMemo(() => {
         const refMap = new Map();
+
+        // First, add references from master data (priority)
+        (masterReferences || []).forEach(r => {
+            if (r.ref && r.ref.trim()) {
+                refMap.set(r.ref.toUpperCase(), {
+                    ref: r.ref.toUpperCase(),
+                    model: r.equipmentName || r.model || '', // Support both field names
+                    service: r.service || '',
+                    provider: r.provider || '',
+                    provider_contact: '',
+                    fromMaster: true
+                });
+            }
+        });
+
+        // Then add from shipments (won't overwrite master data)
         (allShipments || [])
             .filter(s => s.ref && s.ref.trim())
             .sort((a, b) => new Date(b.shipment_date) - new Date(a.shipment_date))
@@ -47,25 +67,36 @@ const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments }
                         model: s.model,
                         service: s.service,
                         provider: s.provider,
-                        provider_contact: s.provider_contact || ''
+                        provider_contact: s.provider_contact || '',
+                        fromMaster: false
                     });
                 }
             });
+
         return Array.from(refMap.values())
             .filter(r => r.ref.includes(formData.ref.toUpperCase()))
             .sort((a, b) => a.ref.localeCompare(b.ref, 'es'));
-    }, [allShipments, formData.ref]);
+    }, [allShipments, masterReferences, formData.ref]);
 
-    // Get unique contacts
+    // Get unique contacts (from shipments and master providers)
     const [showContacts, setShowContacts] = useState(false);
     const uniqueContacts = useMemo(() => {
-        const contacts = (allShipments || [])
+        // Contacts from existing shipments
+        const contactsFromShipments = (allShipments || [])
             .filter(s => s.provider_contact && s.provider_contact.trim())
             .map(s => s.provider_contact);
-        return [...new Set(contacts)]
-            .filter(c => c.toLowerCase().includes(formData.provider_contact.toLowerCase()))
+
+        // Emails from master providers
+        const emailsFromProviders = (masterProviders || [])
+            .flatMap(p => p.emails || []);
+
+        // Combine and deduplicate
+        const allContacts = [...new Set([...contactsFromShipments, ...emailsFromProviders])];
+
+        return allContacts
+            .filter(c => c && c.toLowerCase().includes(formData.provider_contact.toLowerCase()))
             .sort((a, b) => a.localeCompare(b, 'es'));
-    }, [allShipments, formData.provider_contact]);
+    }, [allShipments, masterProviders, formData.provider_contact]);
 
     // Handle reference selection from dropdown
     const handleRefSelect = (refData) => {

@@ -21,7 +21,7 @@ const MasterDataManager = ({
 
     // Reference form state
     const [editingRef, setEditingRef] = useState(null);
-    const [newRef, setNewRef] = useState({ ref: '', model: '', service: '', provider: '' });
+    const [newRef, setNewRef] = useState({ ref: '', equipmentName: '', service: '', provider: '' });
     const [showNewRefForm, setShowNewRefForm] = useState(false);
 
     // Provider form state
@@ -34,7 +34,7 @@ const MasterDataManager = ({
     const filteredReferences = useMemo(() => {
         return (masterReferences || []).filter(r =>
             r.ref?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            r.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            r.equipmentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             r.provider?.toLowerCase().includes(searchTerm.toLowerCase())
         ).sort((a, b) => (a.ref || '').localeCompare(b.ref || '', 'es'));
     }, [masterReferences, searchTerm]);
@@ -59,7 +59,7 @@ const MasterDataManager = ({
         try {
             if (isNew) {
                 await onAddReference(refData);
-                setNewRef({ ref: '', model: '', service: '', provider: '' });
+                setNewRef({ ref: '', equipmentName: '', service: '', provider: '' });
                 setShowNewRefForm(false);
             } else {
                 await onEditReference(refData);
@@ -136,8 +136,8 @@ const MasterDataManager = ({
                     <button
                         onClick={() => setActiveTab('references')}
                         className={`px-5 py-2.5 rounded-xl text-[10px] font-black tracking-widest transition-all flex items-center gap-2 ${activeTab === 'references'
-                                ? 'bg-white text-quiron-primary shadow-sm'
-                                : 'text-gray-400 hover:text-quiron-secondary'
+                            ? 'bg-white text-quiron-primary shadow-sm'
+                            : 'text-gray-400 hover:text-quiron-secondary'
                             }`}
                     >
                         <FileText size={14} />
@@ -146,8 +146,8 @@ const MasterDataManager = ({
                     <button
                         onClick={() => setActiveTab('providers')}
                         className={`px-5 py-2.5 rounded-xl text-[10px] font-black tracking-widest transition-all flex items-center gap-2 ${activeTab === 'providers'
-                                ? 'bg-white text-quiron-primary shadow-sm'
-                                : 'text-gray-400 hover:text-quiron-secondary'
+                            ? 'bg-white text-quiron-primary shadow-sm'
+                            : 'text-gray-400 hover:text-quiron-secondary'
                             }`}
                     >
                         <Building2 size={14} />
@@ -324,9 +324,9 @@ const ReferenceForm = ({ data, setData, services, providers, onSave, onCancel, i
             />
             <input
                 type="text"
-                placeholder="Modelo"
-                value={data.model || ''}
-                onChange={(e) => setData({ ...data, model: e.target.value })}
+                placeholder="Nombre del Equipo"
+                value={data.equipmentName || ''}
+                onChange={(e) => setData({ ...data, equipmentName: e.target.value })}
                 className="px-4 py-2.5 bg-white rounded-xl border border-gray-200 font-medium text-sm outline-none focus:border-quiron-primary"
             />
         </div>
@@ -394,7 +394,7 @@ const ReferenceItem = ({ reference, isEditing, editingData, setEditingData, serv
                     <div>
                         <p className="font-black text-quiron-secondary">{reference.ref}</p>
                         <p className="text-xs text-gray-400">
-                            {[reference.model, reference.service, reference.provider].filter(Boolean).join(' • ')}
+                            {[reference.equipmentName, reference.service, reference.provider].filter(Boolean).join(' • ')}
                         </p>
                     </div>
                 </div>
