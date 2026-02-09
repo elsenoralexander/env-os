@@ -88,9 +88,6 @@ export const uploadToCloudinary = async (file) => {
         formData.append('file', fileToUpload);
         formData.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
         formData.append('folder', 'hospital_envios');
-        // Request stable URL format
-        formData.append('resource_type', 'image');
-        formData.append('type', 'upload');
 
         const response = await fetch(
             `https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/image/upload`,
@@ -143,8 +140,6 @@ export const uploadBase64ToCloudinary = async (base64String) => {
         formData.append('file', dataUrl);
         formData.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
         formData.append('folder', 'hospital_envios');
-        formData.append('resource_type', 'image');
-        formData.append('type', 'upload');
 
         const response = await fetch(
             `https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/image/upload`,
