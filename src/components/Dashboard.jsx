@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
     Search, Filter, Plus, Package, Truck, Clock,
     AlertTriangle, Settings2, BarChart3, ChevronDown,
-    CheckCircle2, ArrowRight, X, Pencil, Camera, ClipboardList, Info
+    CheckCircle2, ArrowRight, X, Pencil, Camera, ClipboardList, Info, ArrowUpDown
 } from 'lucide-react';
 import ShipmentCard from './ShipmentCard';
 import ShipmentForm from './ShipmentForm';
@@ -36,9 +36,10 @@ const Dashboard = ({
     const [showForm, setShowForm] = useState(false);
     const [selectedShipment, setSelectedShipment] = useState(null);
     const [filterLoan, setFilterLoan] = useState(false);
+    const [sortDescending, setSortDescending] = useState(true); // Newest first by default
 
     const filteredShipments = useMemo(() => {
-        return shipments.filter(s => {
+        const filtered = shipments.filter(s => {
             const matchesSearch = !searchTerm ||
                 s.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (s.sn && s.sn.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -51,7 +52,14 @@ const Dashboard = ({
 
             return matchesSearch && matchesService && matchesLoan;
         });
-    }, [shipments, searchTerm, selectedService, filterLoan]);
+
+        // Sort by date
+        return filtered.sort((a, b) => {
+            const dateA = new Date(a.shipment_date || a.createdAt || 0);
+            const dateB = new Date(b.shipment_date || b.createdAt || 0);
+            return sortDescending ? dateB - dateA : dateA - dateB;
+        });
+    }, [shipments, searchTerm, selectedService, filterLoan, sortDescending]);
 
     const handleQuickReceipt = (shipment) => {
         const updated = {
@@ -214,6 +222,18 @@ const Dashboard = ({
                                     <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-quiron-secondary/40 pointer-events-none" size={16} />
                                 </div>
                             </div>
+
+                            {/* Sort Order Toggle */}
+                            <button
+                                onClick={() => setSortDescending(!sortDescending)}
+                                className="flex items-center gap-2 px-5 h-16 bg-white rounded-2xl border-2 border-gray-100 hover:border-quiron-primary/30 transition-all group"
+                                title={sortDescending ? 'Mostrando más recientes primero' : 'Mostrando más antiguos primero'}
+                            >
+                                <ArrowUpDown size={20} className="text-quiron-secondary/60 group-hover:text-quiron-primary transition-colors" />
+                                <span className="text-sm font-bold text-quiron-secondary/60 group-hover:text-quiron-primary transition-colors hidden sm:inline">
+                                    {sortDescending ? 'Recientes ↓' : 'Antiguos ↑'}
+                                </span>
+                            </button>
                         </div>
 
                         {/* Results Grid */}

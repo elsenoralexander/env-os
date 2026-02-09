@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { X, Camera, Save, ClipboardList, Info, Plus, ChevronDown, Building2, Loader2 } from 'lucide-react';
+import { X, Camera, Save, ClipboardList, Info, Plus, ChevronDown, Building2, Loader2, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { uploadToCloudinary } from '../cloudinary';
+import EmailPopup from './EmailPopup';
 
 const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments, masterReferences, masterProviders }) => {
     const [formData, setFormData] = useState({
@@ -27,6 +28,7 @@ const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments, 
     const [showReferences, setShowReferences] = useState(false);
     const [refAutoFilled, setRefAutoFilled] = useState(false);
     const [uploadingImage, setUploadingImage] = useState(false);
+    const [showEmailPopup, setShowEmailPopup] = useState(null); // null or shipment data
 
     const uniqueProviders = useMemo(() => {
         // Combine providers from shipments and master data
@@ -113,13 +115,25 @@ const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments, 
 
     // Handle reference selection from dropdown
     const handleRefSelect = (refData) => {
+        // Look up provider email from master providers if no contact in reference
+        let contactToUse = refData.provider_contact || '';
+        if (!contactToUse && refData.provider && masterProviders) {
+            const masterProvider = masterProviders.find(
+                p => p.name && p.name.toLowerCase() === refData.provider.toLowerCase()
+            );
+            if (masterProvider && masterProvider.emails && masterProvider.emails.length > 0) {
+                contactToUse = masterProvider.emails[0]; // Use first email
+                console.log(`📧 Auto-filled contact from master: ${contactToUse}`);
+            }
+        }
+
         setFormData(prev => ({
             ...prev,
             ref: refData.ref,
             model: refData.model,
             service: refData.service,
             provider: refData.provider,
-            provider_contact: refData.provider_contact
+            provider_contact: contactToUse
         }));
         setRefAutoFilled(true);
         setShowReferences(false);
@@ -529,19 +543,53 @@ const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments, 
                     </div>
                 </div>
 
-                <div className="pt-10 flex gap-4 border-t border-gray-100">
-                    <button type="submit" className="btn-premium-primary flex-1 h-16 justify-center text-lg shadow-xl shadow-quiron-primary/20">
-                        <Save size={24} />
-                        Finalizar y Guardar
+                <div className="pt-10 flex flex-wrap gap-4 border-t border-gray-100">
+                    <button
+                        type="submit"
+                        className="btn-premium-primary flex-1 min-w-[200px] h-14 justify-center text-base shadow-xl shadow-quiron-primary/20"
+                    >
+                        <Save size={20} />
+                        Registrar Envío
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            // Create shipment data first
+                            const shipmentData = {
+                                ...formData,
+                                id: Math.random().toString(36).substr(2, 6).toUpperCase(),
+                            };
+                            // Save the shipment
+                            onSave(shipmentData);
+                            // Show email popup with the shipment data
+                            setShowEmailPopup(shipmentData);
+                        }}
+                        className="flex items-center justify-center gap-2 flex-1 min-w-[200px] h-14 px-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold rounded-2xl hover:shadow-lg hover:shadow-blue-500/30 transition-all"
+                    >
+                        <Mail size={20} />
+                        Registrar y Enviar Email
                     </button>
                     <button
                         type="button" onClick={onCancel}
-                        className="px-10 font-bold text-gray-400 hover:text-quiron-secondary transition-colors"
+                        className="px-8 font-bold text-gray-400 hover:text-quiron-secondary transition-colors"
                     >
                         Descartar
                     </button>
                 </div>
             </form>
+
+            {/* Email Popup */}
+            <AnimatePresence>
+                {showEmailPopup && (
+                    <EmailPopup
+                        shipment={showEmailPopup}
+                        onClose={() => {
+                            setShowEmailPopup(null);
+                            onCancel(); // Close the form after sending email
+                        }}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 };
