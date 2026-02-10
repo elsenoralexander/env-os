@@ -281,9 +281,9 @@ const Dashboard = ({
                             allShipments={allShipments}
                             masterReferences={masterReferences}
                             masterProviders={masterProviders}
-                            onSave={(data) => {
+                            onSave={(data, shouldClose = true) => {
                                 onAddShipment(data);
-                                setShowForm(false);
+                                if (shouldClose) setShowForm(false);
                             }}
                             onAddService={onAddService}
                             onCancel={() => setShowForm(false)}

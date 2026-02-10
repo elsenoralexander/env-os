@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { uploadToCloudinary } from '../cloudinary';
+import { uploadToImgbb } from '../imgbb';
 import EmailPopup from './EmailPopup';
 
 const STATUS_WORKFLOW = [
@@ -183,7 +183,7 @@ const ShipmentDetail = ({ shipment, services, allShipments, masterReferences, ma
         setUploadingImage(true);
         try {
             console.log(`📸 Uploading image: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
-            const imageUrl = await uploadToCloudinary(file);
+            const imageUrl = await uploadToImgbb(file);
             setData({ ...data, image: imageUrl });
             console.log('✅ Image uploaded successfully:', imageUrl);
         } catch (error) {

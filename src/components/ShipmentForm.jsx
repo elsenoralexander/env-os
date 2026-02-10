@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { X, Camera, Save, ClipboardList, Info, Plus, ChevronDown, Building2, Loader2, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { uploadToCloudinary } from '../cloudinary';
+import { uploadToImgbb } from '../imgbb';
 import EmailPopup from './EmailPopup';
 
 const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments, masterReferences, masterProviders }) => {
@@ -148,7 +148,7 @@ const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments, 
         setShowReferences(true);
     };
 
-    // Handle image upload to Cloudinary
+    // Handle image upload to ImgBB
     const handleImageChange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -170,11 +170,11 @@ const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments, 
         reader.onload = (event) => setPreview(event.target.result);
         reader.readAsDataURL(file);
 
-        // Upload to Cloudinary with compression
+        // Upload to ImgBB with compression
         setUploadingImage(true);
         try {
             console.log(`📸 Uploading image: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
-            const imageUrl = await uploadToCloudinary(file);
+            const imageUrl = await uploadToImgbb(file);
             setFormData({ ...formData, image: imageUrl });
             console.log('✅ Image uploaded successfully:', imageUrl);
         } catch (error) {
@@ -559,8 +559,8 @@ const ShipmentForm = ({ onSave, onCancel, services, onAddService, allShipments, 
                                 ...formData,
                                 id: Math.random().toString(36).substr(2, 6).toUpperCase(),
                             };
-                            // Save the shipment
-                            onSave(shipmentData);
+                            // Save the shipment, but don't close the form yet
+                            onSave(shipmentData, false);
                             // Show email popup with the shipment data
                             setShowEmailPopup(shipmentData);
                         }}
