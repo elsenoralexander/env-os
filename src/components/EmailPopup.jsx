@@ -18,7 +18,9 @@ const EmailPopup = ({ shipment, onClose }) => {
         if (shipment.ref === 'INSTRUMENTAL') {
             return `Buenos días,
 
-Tenemos el siguiente material para reparar: ${shipment.observations || '[OBSERVACIONES Y DOCUMENTACIÓN]'}.
+Tenemos el siguiente material para reparar:
+
+${shipment.observations || '[OBSERVACIONES Y DOCUMENTACIÓN]'}.
 
 ${actionText}${loanText}
 

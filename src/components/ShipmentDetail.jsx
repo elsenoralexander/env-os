@@ -317,8 +317,8 @@ const ShipmentDetail = ({ shipment, services, allShipments, masterReferences, ma
             </div>
 
             {/* Right side: Details & Forms */}
-            <div className="flex-1 p-10 lg:overflow-y-auto">
-                <div className="flex justify-between items-start mb-10">
+            <div className="flex-1 p-6 lg:p-10 lg:overflow-y-auto">
+                <div className="flex flex-col sm:flex-row justify-between items-start mb-6 lg:mb-10 gap-4">
                     <div>
                         <div className="flex items-center gap-3 mb-2">
                             {isEditing ? (
@@ -385,7 +385,7 @@ const ShipmentDetail = ({ shipment, services, allShipments, masterReferences, ma
                         {isEditing ? (
                             <div className="space-y-4">
                                 <textarea
-                                    className="text-4xl font-black text-quiron-secondary bg-gray-50 border-b-4 border-quiron-primary outline-none py-4 w-full min-h-[120px] rounded-t-3xl px-4"
+                                    className="text-2xl lg:text-4xl font-black text-quiron-secondary bg-gray-50 border-b-4 border-quiron-primary outline-none py-4 w-full min-h-[120px] rounded-t-3xl px-4"
                                     value={data.model}
                                     onChange={(e) => setData({ ...data, model: e.target.value })}
                                 />
@@ -447,7 +447,7 @@ const ShipmentDetail = ({ shipment, services, allShipments, masterReferences, ma
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                <h2 className="text-4xl font-black text-quiron-secondary tracking-tight leading-tight">{data.model}</h2>
+                                <h2 className="text-2xl lg:text-4xl font-black text-quiron-secondary tracking-tight leading-tight">{data.model}</h2>
                                 {data.sn && (
                                     <div className="flex items-center gap-2">
                                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Serial Number:</span>
