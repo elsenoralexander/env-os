@@ -15,6 +15,16 @@ const EmailPopup = ({ shipment, onClose }) => {
             ? 'Solicitamos recogida en la oficina de electromedicina (Almacén general).'
             : 'Procederemos al envío del equipo a vuestras instalaciones.';
 
+        if (shipment.ref === 'INSTRUMENTAL') {
+            return `Buenos días,
+
+Tenemos el siguiente material para reparar: ${shipment.observations || '[OBSERVACIONES Y DOCUMENTACIÓN]'}.
+
+${actionText}${loanText}
+
+Muchas gracias`;
+        }
+
         return `Hola,
 
 Tenemos el equipo ${shipment.model || '[DESCRIPCIÓN DEL EQUIPO]'} referencia ${shipment.ref || '[REFERENCIA]'} con SN: ${shipment.sn || '[NUMERO DE SERIE]'} con el siguiente problema:
