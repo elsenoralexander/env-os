@@ -168,7 +168,7 @@ const Dashboard = ({
                             <StatCard
                                 icon={<Package size={32} />}
                                 label="Equipos Préstamo"
-                                value={allShipments.filter(s => s.loan).length}
+                                value={allShipments.filter(s => s.loan && !s.delivery_date).length}
                                 color="bg-blue-600"
                                 delay={0.2}
                                 active={currentView === 'main' && filterLoan}
